@@ -6,6 +6,9 @@
 .metadata/
 .recommenders/
 
+# 文档
+/docs
+
 # 日志
 logs/
 *.log
