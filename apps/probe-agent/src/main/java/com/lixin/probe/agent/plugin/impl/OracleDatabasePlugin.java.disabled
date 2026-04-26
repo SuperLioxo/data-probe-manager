@@ -1,0 +1,70 @@
+package com.lixin.probe.agent.plugin.impl;
+
+import com.lixin.probe.agent.plugin.AbstractDatabasePlugin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+
+/**
+ * Oracle 数据库插件
+ */
+@Component
+public class OracleDatabasePlugin extends AbstractDatabasePlugin {
+
+    private static final Logger log = LoggerFactory.getLogger(OracleDatabasePlugin.class);
+    @Override
+    protected String getDriverClass() {
+        return "oracle.jdbc.OracleDriver";
+    }
+
+    @Override
+    public String getDbType() {
+        return "oracle";
+    }
+
+    @Override
+    public String getVersionRange() {
+        return "11g,12c,19c,21c,23c";
+    }
+
+    @Override
+    public String buildUrl(Map<String, Object> params) {
+        String host = (String) params.get("host");
+        Integer port = (Integer) params.get("port");
+        String name = (String) params.get("name");
+        return String.format("jdbc:oracle:thin:@%s:%d:%s", host, port, name);
+    }
+
+    @Override
+    public String escapeTableName(String fullTableName) {
+        if (fullTableName == null) {
+            return "";
+        }
+        // Oracle 使用双引号转义
+        return "\"" + fullTableName.replace(".", "\".\"") + "\"";
+    }
+
+    @Override
+    public String getCountSql(boolean isPrecise, Map<String, Object> params) {
+        String tableName = escapeTableName((String) params.get("table"));
+        if (isPrecise) {
+            return String.format("SELECT COUNT(*) FROM %s", tableName);
+        }
+        // 验证并转义表名
+        String table = escapeSqlIdentifier((String) params.get("table"));
+        // Oracle 使用 NUM_ROWS 估算
+        return String.format("SELECT NUM_ROWS FROM ALL_TABLES WHERE TABLE_NAME = '%s'",
+                table.toUpperCase());
+    }
+
+    @Override
+    public String getStorageSql(Map<String, Object> params) {
+        // 验证并转义表名
+        String table = escapeSqlIdentifier((String) params.get("table"));
+        // Oracle 使用 USER_SEGMENTS 查询段大小
+        return String.format("SELECT BYTES FROM USER_SEGMENTS WHERE SEGMENT_NAME = '%s'",
+                table.toUpperCase());
+    }
+}

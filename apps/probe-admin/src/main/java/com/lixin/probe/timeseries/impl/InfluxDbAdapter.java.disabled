@@ -1,0 +1,348 @@
+package com.lixin.probe.timeseries.impl;
+
+import com.influxdb.client.InfluxDBClient;
+import com.influxdb.client.InfluxDBClientFactory;
+import com.influxdb.client.domain.WritePrecision;
+import com.influxdb.client.write.Point;
+import com.influxdb.query.FluxRecord;
+import com.influxdb.query.FluxTable;
+import com.lixin.probe.dto.MetricData;
+import com.lixin.probe.timeseries.TimeSeriesDatabase;
+import com.lixin.probe.timeseries.TimeSeriesException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * InfluxDB时间序列数据库适配器
+ *
+ * <p>提供InfluxDB的实现，将指标数据写入InfluxDB 2.0。
+ * 需要配置：tsdb.type=influxdb</p>
+ *
+ * <p>InfluxDB配置示例：
+ * <pre>
+ * tsdb:
+ *   type: influxdb
+ *   influxdb:
+ *     url: http://localhost:8086
+ *     token: your-token
+ *     org: your-org
+ *     bucket: probe-metrics
+ * </pre></p>
+ *
+ * @author Claude Code
+ * @since 1.0
+ * @version 2.0 (完整实现)
+ */
+@Component
+@ConditionalOnProperty(name = "tsdb.type", havingValue = "influxdb")
+@ConfigurationProperties(prefix = "tsdb.influxdb")
+public class InfluxDbAdapter implements TimeSeriesDatabase {
+
+    private static final Logger log = LoggerFactory.getLogger(InfluxDbAdapter.class);
+
+    private InfluxDBClient influxDBClient;
+
+    // 配置属性
+    private String url;
+    private String token;
+    private String org;
+    private String bucket;
+
+    /**
+     * 初始化InfluxDB客户端
+     */
+    @PostConstruct
+    public void init() {
+        try {
+            log.info("初始化InfluxDB适配器: url={}, org={}, bucket={}", url, org, bucket);
+
+            influxDBClient = InfluxDBClientFactory.create(url, token.toCharArray(), org);
+
+            // 测试连接
+            if (healthCheck()) {
+                log.info("InfluxDB连接成功");
+            } else {
+                log.warn("InfluxDB健康检查失败，但适配器已初始化");
+            }
+
+        } catch (Exception e) {
+            log.error("初始化InfluxDB适配器失败", e);
+            // 不抛出异常，允许系统启动（时序数据库是可选功能）
+        }
+    }
+
+    /**
+     * 销毁InfluxDB客户端
+     */
+    @PreDestroy
+    public void destroy() {
+        if (influxDBClient != null) {
+            try {
+                influxDBClient.close();
+                log.info("InfluxDB客户端已关闭");
+            } catch (Exception e) {
+                log.error("关闭InfluxDB客户端失败", e);
+            }
+        }
+    }
+
+    @Override
+    public void writeMetrics(String probeKey, List<MetricData> metrics) throws TimeSeriesException {
+        if (metrics == null || metrics.isEmpty()) {
+            log.warn("指标数据为空，跳过写入");
+            return;
+        }
+
+        try {
+            // 转换MetricData为InfluxDB Point
+            List<Point> points = new ArrayList<>();
+            for (MetricData metric : metrics) {
+                Point point = convertToPoint(metric, probeKey);
+                if (point != null) {
+                    points.add(point);
+                }
+            }
+
+            if (!points.isEmpty()) {
+                // 批量写入InfluxDB
+                influxDBClient.getWriteApiBlocking().writePoints(bucket, org, points);
+                log.debug("写入InfluxDB成功: probeKey={}, count={}", probeKey, points.size());
+            } else {
+                log.warn("没有有效的Point可写入");
+            }
+
+        } catch (Exception e) {
+            log.error("写入InfluxDB失败: probeKey={}", probeKey, e);
+            throw new TimeSeriesException("写入InfluxDB失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public List<MetricData> queryMetrics(String probeKey, String metricName,
+                                        LocalDateTime start, LocalDateTime end) throws TimeSeriesException {
+        try {
+            List<MetricData> result = new ArrayList<>();
+
+            // 构建Flux查询
+            String query = String.format(
+                    "from(bucket: \"%s\") " +
+                    "|> range(start: %s, stop: %s) " +
+                    "|> filter(fn: (r) => r._measurement == \"%s\") " +
+                    "|> filter(fn: (r) => r.probe_key == \"%s\")",
+                    bucket,
+                    start.format(DateTimeFormatter.ISO_DATE_TIME),
+                    end.format(DateTimeFormatter.ISO_DATE_TIME),
+                    metricName,
+                    probeKey
+            );
+
+            // 执行查询
+            List<FluxTable> tables = influxDBClient.getQueryApi().query(query, org);
+
+            // 转换查询结果为MetricData
+            for (FluxTable table : tables) {
+                for (FluxRecord record : table.getRecords()) {
+                    MetricData metric = convertRecordToMetricData(record);
+                    if (metric != null) {
+                        result.add(metric);
+                    }
+                }
+            }
+
+            log.debug("查询InfluxDB成功: probeKey={}, metricName={}, count={}",
+                    probeKey, metricName, result.size());
+
+            return result;
+
+        } catch (Exception e) {
+            log.error("查询InfluxDB失败: probeKey={}, metricName={}", probeKey, metricName, e);
+            throw new TimeSeriesException("查询InfluxDB失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public List<MetricData> queryLatestMetrics(String probeKey, String metricName, int limit) throws TimeSeriesException {
+        try {
+            List<MetricData> result = new ArrayList<>();
+
+            // 构建Flux查询（查询最近1小时的数据）
+            String query = String.format(
+                    "from(bucket: \"%s\") " +
+                    "|> range(start: -1h) " +
+                    "|> filter(fn: (r) => r._measurement == \"%s\") " +
+                    "|> filter(fn: (r) => r.probe_key == \"%s\") " +
+                    "|> sort(columns: [\"_time\"], desc: true) " +
+                    "|> limit(n: %d)",
+                    bucket, metricName, probeKey, limit
+            );
+
+            // 执行查询
+            List<FluxTable> tables = influxDBClient.getQueryApi().query(query, org);
+
+            // 转换查询结果为MetricData
+            for (FluxTable table : tables) {
+                for (FluxRecord record : table.getRecords()) {
+                    MetricData metric = convertRecordToMetricData(record);
+                    if (metric != null) {
+                        result.add(metric);
+                    }
+                }
+            }
+
+            log.debug("查询InfluxDB最新数据成功: probeKey={}, metricName={}, limit={}",
+                    probeKey, metricName, limit);
+
+            return result;
+
+        } catch (Exception e) {
+            log.error("查询InfluxDB最新数据失败: probeKey={}, metricName={}", probeKey, metricName, e);
+            throw new TimeSeriesException("查询InfluxDB最新数据失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void deleteOldData(String probeKey, LocalDateTime before) throws TimeSeriesException {
+        try {
+            // InfluxDB 2.0使用DeletePredicateRequest删除API
+            OffsetDateTime start = before.minusYears(10).atZone(ZoneId.systemDefault()).toOffsetDateTime();
+            OffsetDateTime stop = before.atZone(ZoneId.systemDefault()).toOffsetDateTime();
+
+            com.influxdb.client.domain.DeletePredicateRequest request =
+                new com.influxdb.client.domain.DeletePredicateRequest()
+                    .start(start)
+                    .stop(stop)
+                    .predicate("_measurement=\"" + probeKey + "\"");
+
+            influxDBClient.getDeleteApi().delete(request, bucket, org);
+
+            log.info("删除InfluxDB旧数据成功: probeKey={}, before={}", probeKey, before);
+
+        } catch (Exception e) {
+            log.error("删除InfluxDB旧数据失败: probeKey={}, before={}", probeKey, before, e);
+            throw new TimeSeriesException("删除InfluxDB旧数据失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public String getDatabaseType() {
+        return "influxdb";
+    }
+
+    @Override
+    public boolean healthCheck() {
+        try {
+            // 使用ping检查健康状态
+            influxDBClient.health();
+            return true;
+        } catch (Exception e) {
+            log.error("InfluxDB健康检查失败", e);
+            return false;
+        }
+    }
+
+    /**
+     * 转换MetricData为InfluxDB Point
+     */
+    private Point convertToPoint(MetricData metric, String probeKey) {
+        if (metric == null) {
+            return null;
+        }
+
+        try {
+            Point point = Point.measurement(metric.getMetricName())
+                    .addTag("probe_key", probeKey)
+                    .time(metric.getTimestamp().atZone(ZoneId.systemDefault()).toInstant(), WritePrecision.NS);
+
+            // 添加标签
+            if (metric.getTags() != null) {
+                metric.getTags().forEach(point::addTag);
+            }
+
+            // 添加字段
+            point.addField("value", metric.getValue());
+
+            return point;
+
+        } catch (Exception e) {
+            log.error("转换MetricData为Point失败: {}", metric, e);
+            return null;
+        }
+    }
+
+    /**
+     * 转换FluxRecord为MetricData
+     */
+    private MetricData convertRecordToMetricData(FluxRecord record) {
+        try {
+            MetricData metric = new MetricData();
+
+            // 提取基本信息
+            Object probeKeyValue = record.getValueByKey("probe_key");
+            metric.setProbeKey(probeKeyValue != null ? probeKeyValue.toString() : "");
+            metric.setMetricName(record.getMeasurement());
+
+            // 提取时间戳
+            Object timeValue = record.getValueByKey("_time");
+            if (timeValue != null) {
+                Instant instant = Instant.parse(timeValue.toString());
+                metric.setTimestamp(LocalDateTime.ofInstant(instant, ZoneId.systemDefault()));
+            }
+
+            // 提取值
+            Object value = record.getValueByKey("_value");
+            if (value != null) {
+                metric.setValue(((Number) value).doubleValue());
+            }
+
+            // 提取所有标签
+            Map<String, String> tags = new java.util.HashMap<>();
+            record.getValues().forEach((k, v) -> {
+                if (k.startsWith("_")) {
+                    // InfluxDB内部字段，跳过
+                    return;
+                }
+                // 添加为标签
+                tags.put(k, v.toString());
+            });
+            metric.setTags(tags);
+
+            return metric;
+
+        } catch (Exception e) {
+            log.error("转换FluxRecord为MetricData失败: {}", record, e);
+            return null;
+        }
+    }
+
+    // Getter和Setter方法
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public void setOrg(String org) {
+        this.org = org;
+    }
+
+    public void setBucket(String bucket) {
+        this.bucket = bucket;
+    }
+}

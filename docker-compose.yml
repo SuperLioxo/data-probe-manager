@@ -1,0 +1,170 @@
+services:
+  # ---- Infrastructure ----
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-probe_db}
+      POSTGRES_USER: ${DB_USERNAME:-probe_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-probe_user} -d ${DB_NAME:-probe_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - probe-net
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+      MYSQL_DATABASE: test_db
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init/mysql:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - probe-net
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - probe-net
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  # ---- Application Services ----
+  admin:
+    build:
+      context: .
+      dockerfile: apps/probe-admin/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-probe_db}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-probe_user}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      TZ: Asia/Shanghai
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      META_ENCRYPTION_KEY: ${META_ENCRYPTION_KEY:?META_ENCRYPTION_KEY is required}
+      FILE_ENCRYPTION_KEY: ${FILE_ENCRYPTION_KEY:?FILE_ENCRYPTION_KEY is required}
+    ports:
+      - "8081:8081"
+    volumes:
+      - admin_logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - probe-net
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  agent:
+    build:
+      context: .
+      dockerfile: apps/probe-agent/Dockerfile
+    depends_on:
+      admin:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      PROBE_AGENT_SERVER_HOST: admin
+      PROBE_AGENT_SERVER_PORT: 8081
+      PROBE_AGENT_KEY: ${AGENT_KEY:?AGENT_KEY is required}
+      TZ: Asia/Shanghai
+    ports:
+      - "58081:58081"
+    volumes:
+      - agent_logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - probe-net
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:58081/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/probe-web/Dockerfile
+    depends_on:
+      admin:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+    networks:
+      - probe-net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+
+networks:
+  probe-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mysql_data:
+  redis_data:
+  admin_logs:
+  agent_logs:

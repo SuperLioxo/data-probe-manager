@@ -1,0 +1,137 @@
+package com.lixin.probe.agent.plugin.impl;
+
+import com.lixin.probe.agent.plugin.AbstractDatabasePlugin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.sql.*;
+import java.util.Map;
+
+/**
+ * PostgreSQL 数据库插件
+ */
+@Component
+public class PostgreSQLDatabasePlugin extends AbstractDatabasePlugin {
+
+    private static final Logger log = LoggerFactory.getLogger(PostgreSQLDatabasePlugin.class);
+    @Override
+    protected String getDriverClass() {
+        return "org.postgresql.Driver";
+    }
+
+    @Override
+    public String getDbType() {
+        return "postgresql";
+    }
+
+    @Override
+    public String getVersionRange() {
+        return "12,13,14,15,16";
+    }
+
+    @Override
+    public String buildUrl(Map<String, Object> params) {
+        String host = (String) params.get("host");
+        Integer port = (Integer) params.get("port");
+        String name = (String) params.get("name");
+
+        log.info("🔗 [PostgreSQLPlugin] 构建JDBC URL:");
+        log.info("  - host: {}", host);
+        log.info("  - port: {}", port);
+        log.info("  - name (database): {}", name);
+        log.info("  - params keys: {}", params.keySet());
+
+        // Defensive check
+        if (name == null || name.trim().isEmpty()) {
+            log.error("❌ [PostgreSQLPlugin] 数据库名称(name)为null或空! params={}", params);
+            throw new IllegalArgumentException("数据库名称不能为空");
+        }
+
+        String url = String.format("jdbc:postgresql://%s:%d/%s", host, port, name);
+        log.info("✅ [PostgreSQLPlugin] JDBC URL: {}", url);
+        return url;
+    }
+
+    @Override
+    public String escapeTableName(String fullTableName) {
+        if (fullTableName == null) {
+            return "";
+        }
+        // PostgreSQL 使用双引号转义
+        return "\"" + fullTableName.replace(".", "\".\"") + "\"";
+    }
+
+    @Override
+    public String getCountSql(boolean isPrecise, Map<String, Object> params) {
+        String tableName = escapeTableName((String) params.get("table"));
+
+        // 对于PostgreSQL，统一使用精确查询，因为pg_class.reltuples可能是-1（未统计）
+        // 精确查询虽然稍慢，但能确保数据的准确性
+        return String.format("SELECT COUNT(*) FROM %s", tableName);
+    }
+
+    @Override
+    public String getStorageSql(Map<String, Object> params) {
+        String table = (String) params.get("table");
+        // PostgreSQL 使用 pg_total_relation_size 函数
+        return String.format("SELECT pg_total_relation_size('%s')", table);
+    }
+
+    @Override
+    protected String getDatabaseCharset(DatabaseMetaData metaData, String dbName) {
+        // PostgreSQL数据库编码通常通过查询pg_database获取
+        log.info("查询PostgreSQL数据库字符集: datname={}", dbName);
+        try (Connection conn = metaData.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT encoding FROM pg_database WHERE datname = '" + dbName + "'")) {
+            if (rs.next()) {
+                int encodingId = rs.getInt("encoding");
+                log.info("查询到PostgreSQL编码ID: {}", encodingId);
+                // PostgreSQL编码ID到编码名称的映射
+                String[] encodings = {
+                    "", "EUC_JP", "EUC_CN", "EUC_KR", "EUC_TW", "EUC_JP", "MULE_INTERNAL",
+                    "LATIN1", "LATIN2", "LATIN3", "LATIN4", "LATIN5", "LATIN6", "LATIN7",
+                    "LATIN8", "LATIN9", "LATIN10", "SQL_ASCII", "UTF8", "MULE_INTERNAL",
+                    "LATIN1", "LATIN2", "LATIN3", "LATIN4", "LATIN5", "LATIN6", "LATIN7",
+                    "LATIN8", "LATIN9", "LATIN10", "EUC_JP", "EUC_CN", "EUC_KR", "EUC_TW",
+                    "EUC_JP", "SQL_ASCII", "UTF8", "MULE_INTERNAL", "LATIN1"
+                };
+                if (encodingId > 0 && encodingId < encodings.length) {
+                    String charset = encodings[encodingId];
+                    log.info("PostgreSQL数据库字符集: {} (encoding ID: {})", charset, encodingId);
+                    return charset;
+                } else {
+                    log.warn("编码ID超出范围: {}, 使用默认UTF8", encodingId);
+                }
+            } else {
+                log.warn("未查询到数据库字符集信息，使用默认UTF8");
+            }
+        } catch (Exception e) {
+            log.error("获取PostgreSQL字符集失败: datname={}", dbName, e);
+        }
+        log.info("使用默认PostgreSQL字符集: UTF8");
+        return "UTF8"; // PostgreSQL默认编码
+    }
+
+    @Override
+    protected String getDatabaseCollation(DatabaseMetaData metaData, String dbName) {
+        // PostgreSQL的排序规则通过查询pg_database获取
+        log.info("查询PostgreSQL数据库排序规则: datname={}", dbName);
+        try (Connection conn = metaData.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT datcollate FROM pg_database WHERE datname = '" + dbName + "'")) {
+            if (rs.next()) {
+                String collation = rs.getString("datcollate");
+                log.info("PostgreSQL数据库排序规则: {}", collation);
+                return collation;
+            } else {
+                log.warn("未查询到数据库排序规则信息，使用默认en_US.UTF-8");
+            }
+        } catch (Exception e) {
+            log.error("获取PostgreSQL排序规则失败: datname={}", dbName, e);
+        }
+        log.info("使用默认PostgreSQL排序规则: en_US.UTF-8");
+        return "en_US.UTF-8"; // 默认排序规则
+    }
+}

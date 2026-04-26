@@ -1,0 +1,6 @@
+com.lixin.probe.agent.plugin.impl.database.MySqlPlugin
+com.lixin.probe.agent.plugin.impl.database.PostgreSQLPlugin
+com.lixin.probe.agent.plugin.impl.database.OraclePlugin
+com.lixin.probe.agent.plugin.impl.database.SQLServerPlugin
+com.lixin.probe.agent.plugin.impl.database.SQLitePlugin
+com.lixin.probe.agent.plugin.impl.database.DmPlugin

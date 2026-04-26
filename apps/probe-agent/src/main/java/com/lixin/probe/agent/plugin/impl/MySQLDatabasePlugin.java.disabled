@@ -1,0 +1,74 @@
+package com.lixin.probe.agent.plugin.impl;
+
+import com.lixin.probe.agent.plugin.AbstractDatabasePlugin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * MySQL 数据库插件
+ */
+@Component
+public class MySQLDatabasePlugin extends AbstractDatabasePlugin {
+
+    private static final Logger log = LoggerFactory.getLogger(MySQLDatabasePlugin.class);
+    @Override
+    protected String getDriverClass() {
+        return "com.mysql.cj.jdbc.Driver";
+    }
+
+    @Override
+    public String getDbType() {
+        return "mysql";
+    }
+
+    @Override
+    public String getVersionRange() {
+        return "5.7,8.0";
+    }
+
+    @Override
+    public String buildUrl(Map<String, Object> params) {
+        String host = (String) params.get("host");
+        Integer port = (Integer) params.get("port");
+        String name = (String) params.get("name");
+        return String.format("jdbc:mysql://%s:%d/%s?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true",
+                host, port, name);
+    }
+
+    @Override
+    public String escapeTableName(String fullTableName) {
+        if (fullTableName == null) {
+            return "";
+        }
+        return Arrays.stream(fullTableName.split("\\."))
+                .map(part -> "`" + part + "`")
+                .collect(Collectors.joining("."));
+    }
+
+    @Override
+    public String getCountSql(boolean isPrecise, Map<String, Object> params) {
+        String tableName = escapeTableName((String) params.get("table"));
+        if (isPrecise) {
+            return String.format("SELECT COUNT(*) FROM %s", tableName);
+        }
+        // 验证并转义数据库名和表名
+        String database = escapeSqlIdentifier((String) params.get("database"));
+        String table = escapeSqlIdentifier((String) params.get("table"));
+        return String.format("SELECT TABLE_ROWS FROM information_schema.TABLES WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s'",
+                database, table);
+    }
+
+    @Override
+    public String getStorageSql(Map<String, Object> params) {
+        // 验证并转义数据库名和表名
+        String database = escapeSqlIdentifier((String) params.get("database"));
+        String table = escapeSqlIdentifier((String) params.get("table"));
+        return String.format("SELECT DATA_LENGTH + INDEX_LENGTH FROM information_schema.TABLES WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s'",
+                database, table);
+    }
+}

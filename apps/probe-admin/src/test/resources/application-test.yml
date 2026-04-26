@@ -1,0 +1,54 @@
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/probe_db
+    username: probe_user
+    password: probe_pass
+    druid:
+      initial-size: 2
+      min-idle: 2
+      max-active: 10
+      validation-query: SELECT 1
+
+  # Redis
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+    timeout: 3000
+
+  # Disable scheduling in tests
+  task:
+    scheduling:
+      enabled: false
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.websocket.servlet.WebSocketServletAutoConfiguration
+
+# MyBatis Plus
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*Mapper.xml
+  type-aliases-package: com.lixin.probe.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# JWT
+jwt:
+  secret: test-secret-key-that-is-at-least-32-characters-long-for-testing
+  access-token-expiration: 3600000
+  refresh-token-expiration: 86400000
+
+# Logging
+logging:
+  level:
+    com.lixin.probe: DEBUG
+    com.baomidou.mybatisplus: WARN

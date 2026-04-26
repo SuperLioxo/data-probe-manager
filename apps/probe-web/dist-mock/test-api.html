@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>API测试</title>
+</head>
+<body>
+  <h1>数据库切换API测试</h1>
+  <button onclick="testAPI()">测试数据库连接API</button>
+  <pre id="result"></pre>
+
+  <script>
+  async function testAPI() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      document.getElementById('result').textContent = '请先登录系统';
+      return;
+    }
+
+    try {
+      // 测试获取数据库连接列表
+      const response = await fetch('http://localhost:8080/api/database-connections/type/PostgreSQL?probeKey=AGENT-database-0jltda-92w', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+
+      if (data.code === 200 && data.data) {
+        console.log('✅ API正常，返回', data.data.length, '个数据库连接');
+        data.data.forEach(conn => {
+          console.log(`- ${conn.name} (${conn.databaseHost}:${conn.databasePort}/${conn.databaseName})`);
+        });
+      }
+    } catch (error) {
+      document.getElementById('result').textContent = '错误: ' + error.message;
+    }
+  }
+  </script>
+</body>
+</html>

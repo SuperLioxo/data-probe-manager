@@ -1,0 +1,100 @@
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+admin:
+  replicaCount: 1
+  image:
+    repository: probe-admin
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8081
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  env:
+    SPRING_PROFILES_ACTIVE: docker
+    SPRING_DATASOURCE_URL: "jdbc:postgresql://{{ .Release.Name }}-postgresql:5432/probe_db"
+    SPRING_DATASOURCE_USERNAME: probe_user
+    SPRING_DATASOURCE_PASSWORD: "${DB_PASSWORD}"
+    SPRING_DATA_REDIS_HOST: "{{ .Release.Name }}-redis-master"
+    SPRING_DATA_REDIS_PORT: "6379"
+  envFrom:
+    - secretRef:
+        name: probe-admin-secrets
+
+agent:
+  replicaCount: 1
+  image:
+    repository: probe-agent
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 58081
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    PROBE_AGENT_SERVER_HOST: "{{ .Release.Name }}-admin"
+    PROBE_AGENT_SERVER_PORT: "8081"
+
+web:
+  replicaCount: 1
+  image:
+    repository: probe-web
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+postgresql:
+  enabled: true
+  auth:
+    existingSecret: probe-db-secrets
+    username: probe_user
+    database: probe_db
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    existingSecret: probe-redis-secrets
+    existingSecretPasswordKey: redis-password
+  master:
+    persistence:
+      enabled: true
+      size: 1Gi
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: probe.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []

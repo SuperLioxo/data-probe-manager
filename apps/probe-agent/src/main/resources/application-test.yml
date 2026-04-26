@@ -1,0 +1,68 @@
+# 探针端测试配置文件
+probe:
+  agent:
+    # 探针编码
+    code: "AGENT"
+
+    # 认证密钥（通过环境变量设置，默认为default-agent-key-2024）
+    key: ${PROBE_KEY:default-agent-key-2024}
+
+    # 服务端配置
+    server:
+      host: "localhost"
+      port: 8081
+      udp-port: 9999
+      ws-meta-url: "ws://localhost:8081/ws/meta"
+      ws-file-url: "ws://localhost:8081/ws/file"
+
+    # 模块配置
+    modules:
+      # 系统监控模块
+      system:
+        enabled: true
+        collect-interval: 10000  # 10秒采集一次
+        batch-size: 50
+        probe-key: ${SYSTEM_PROBE_KEY:probe-system-test-001}
+
+      # 数据库模块
+      database:
+        enabled: true
+        databases:
+          - type: "PostgreSQL"
+            version: "16"
+            host: "localhost"
+            port: 5432
+            name: "probe_db"
+            username: "probe_user"
+            password: "probe_pass"
+            schemas:
+              - "public"
+              - "test_schema"
+
+      # 文件模块
+      file:
+        enabled: true
+        scan-paths:
+          - "/tmp/test-files"
+        file-extensions: ".log,.txt"
+        recursive: true
+        max-depth: 3
+        calculate-md5: false
+
+    # 启动配置
+    startup:
+      execute-immediately: false
+      exit-after-execution: false
+      auto-register: true
+      register-retry-times: 3
+      register-retry-interval: 5000
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.lixin.probe.agent: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/probe-agent-test.log

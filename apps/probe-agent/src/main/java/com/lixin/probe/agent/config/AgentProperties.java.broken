@@ -1,0 +1,860 @@
+package com.lixin.probe.agent.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
+
+/**
+ * 探针端属性配置
+ */
+@Configuration
+@ConfigurationProperties("probe.agent")
+public class AgentProperties {
+
+    /**
+     * 探针编码
+     */
+    private String code = "AGENT-001";
+
+    /**
+     * 认证密钥
+     * 必须通过环境变量 PROBE_KEY 设置，请勿使用硬编码
+     */
+    private String key;
+
+    /**
+     * 服务端配置
+     */
+    private Server server = new Server();
+
+    /**
+     * 模块配置
+     */
+    private Modules modules = new Modules();
+
+    /**
+     * 启动配置
+     */
+    private Startup startup = new Startup();
+
+    // ====== Getter methods (Lombok workaround) ======
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public Server getServer() {
+        return server;
+    }
+
+    public void setServer(Server server) {
+        this.server = server;
+    }
+
+    public Modules getModules() {
+        return modules;
+    }
+
+    public void setModules(Modules modules) {
+        this.modules = modules;
+    }
+
+    public Database getDatabase() {
+        return modules.getDatabase();
+    }
+
+    public Startup getStartup() {
+        return startup;
+    }
+
+    public void setStartup(Startup startup) {
+        this.startup = startup;
+    }
+
+    /**
+     * 服务端配置
+     */
+    public static class Server {
+        /**
+         * 主机地址
+         */
+        private String host = "localhost";
+
+        /**
+         * HTTP 端口
+         */
+        private Integer port = 8080;
+
+        /**
+         * UDP 端口（用于上报监控数据）
+         */
+        private Integer udpPort = 9999;
+
+        /**
+         * UDP 发现端口（用于Agent自动发现和注册）
+         */
+        private Integer discoveryPort = 9090;
+
+        /**
+         * WebSocket 元数据端点
+         */
+        private String wsMetaUrl = "ws://localhost:8080/ws/meta";
+
+        /**
+         * WebSocket 文件端点
+         */
+        private String wsFileUrl = "ws://localhost:8080/ws/file";
+
+        // Manual getters for Lombok compatibility
+        public String getHost() {
+            return host;
+    public String getHost() {
+        return host;
+    }
+    public void setHost(String host) {
+        this.host = host;
+    }
+    public Integer getPort() {
+        return port;
+    }
+    public void setPort(Integer port) {
+        this.port = port;
+    }
+    public Integer getUdpPort() {
+        return udpPort;
+    }
+    public void setUdpPort(Integer udpPort) {
+        this.udpPort = udpPort;
+    }
+    public Integer getDiscoveryPort() {
+        return discoveryPort;
+    }
+    public void setDiscoveryPort(Integer discoveryPort) {
+        this.discoveryPort = discoveryPort;
+    }
+    public String getWsMetaUrl() {
+        return wsMetaUrl;
+    }
+    public void setWsMetaUrl(String wsMetaUrl) {
+        this.wsMetaUrl = wsMetaUrl;
+    }
+    public String getWsFileUrl() {
+        return wsFileUrl;
+    }
+    public void setWsFileUrl(String wsFileUrl) {
+        this.wsFileUrl = wsFileUrl;
+    }
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public Integer getPort() {
+            return port;
+        }
+
+        public void setPort(Integer port) {
+            this.port = port;
+        }
+
+        public Integer getUdpPort() {
+            return udpPort;
+        }
+
+        public void setUdpPort(Integer udpPort) {
+            this.udpPort = udpPort;
+        }
+
+        public Integer getDiscoveryPort() {
+            return discoveryPort;
+        }
+
+        public void setDiscoveryPort(Integer discoveryPort) {
+            this.discoveryPort = discoveryPort;
+        }
+
+        public String getWsMetaUrl() {
+            return wsMetaUrl;
+        }
+
+        public void setWsMetaUrl(String wsMetaUrl) {
+            this.wsMetaUrl = wsMetaUrl;
+        }
+
+        public String getWsFileUrl() {
+            return wsFileUrl;
+        }
+
+        public void setWsFileUrl(String wsFileUrl) {
+            this.wsFileUrl = wsFileUrl;
+        }
+    }
+
+    /**
+     * 模块配置
+     */
+    public static class Modules {
+        /**
+         * 系统监控模块配置
+         */
+        private SystemModule system = new SystemModule();
+
+        /**
+         * 数据库模块配置
+         */
+        private Database database = new Database();
+
+        /**
+         * 文件模块配置
+         */
+        private FileConfig file = new FileConfig();
+
+        /**
+         * 网络模块配置
+         */
+        private NetworkConfig network = new NetworkConfig();
+
+        // Manual getters for Lombok compatibility
+        public SystemModule getSystem() {
+            return system;
+    public SystemModule getSystem() {
+        return system;
+    }
+    public void setSystem(SystemModule system) {
+        this.system = system;
+    }
+    public Database getDatabase() {
+        return database;
+    }
+    public void setDatabase(Database database) {
+        this.database = database;
+    }
+    public FileConfig getFile() {
+        return file;
+    }
+    public void setFile(FileConfig file) {
+        this.file = file;
+    }
+    public NetworkConfig getNetwork() {
+        return network;
+    }
+    public void setNetwork(NetworkConfig network) {
+        this.network = network;
+    }
+        }
+
+        public Database getDatabase() {
+            return database;
+        }
+
+        public FileConfig getFile() {
+            return file;
+        }
+
+        public NetworkConfig getNetwork() {
+            return network;
+        }
+    }
+
+    /**
+     * 系统监控模块配置
+     */
+    public static class SystemModule {
+        /**
+         * 是否启用
+         */
+        private Boolean enabled = true;
+
+        /**
+         * 采集间隔（毫秒）
+         */
+        private Long collectInterval = 10000L;
+
+        /**
+         * 批量发送大小
+         */
+        private Integer batchSize = 50;
+
+        /**
+         * UDP 探针 Key
+         */
+        private String probeKey = "probe-system-001";
+
+        // Getters and Setters
+        public Boolean getEnabled() {
+            return enabled;
+        }
+        public void setEnabled(Boolean enabled) {
+            this.enabled = enabled;
+        }
+        public Long getCollectInterval() {
+            return collectInterval;
+        }
+        public void setCollectInterval(Long collectInterval) {
+            this.collectInterval = collectInterval;
+        }
+        public Integer getBatchSize() {
+            return batchSize;
+        }
+        public void setBatchSize(Integer batchSize) {
+            this.batchSize = batchSize;
+        }
+        public String getProbeKey() {
+            return probeKey;
+        }
+        public void setProbeKey(String probeKey) {
+            this.probeKey = probeKey;
+    public Boolean getEnabled() {
+        return enabled;
+    }
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
+    }
+    public Long getCollectInterval() {
+        return collectInterval;
+    }
+    public void setCollectInterval(Long collectInterval) {
+        this.collectInterval = collectInterval;
+    }
+    public Integer getBatchSize() {
+        return batchSize;
+    }
+    public void setBatchSize(Integer batchSize) {
+        this.batchSize = batchSize;
+    }
+    public String getProbeKey() {
+        return probeKey;
+    }
+    public void setProbeKey(String probeKey) {
+        this.probeKey = probeKey;
+    }
+        }
+    }
+
+    /**
+     * 数据库模块配置
+     */
+    public static class Database {
+        /**
+         * 是否启用
+         */
+        private Boolean enabled = true;
+
+        /**
+         * 数据库列表
+         */
+        private List<DatabaseConfig> databases;
+
+        /**
+         * 数据库配置
+         */
+        @Data
+        public static class DatabaseConfig {
+            /**
+             * 数据库类型
+             */
+            private String type;
+
+            /**
+             * 数据库版本
+             */
+            private String version;
+
+            /**
+             * 主机地址
+             */
+            private String host;
+
+            /**
+             * 端口
+             */
+            private Integer port;
+
+            /**
+             * 数据库名称
+             */
+            private String name;
+
+            /**
+             * 用户名
+             */
+            private String username;
+
+            /**
+             * 密码
+             */
+            private String password;
+
+            /**
+             * Schema 列表
+             */
+            private List<String> schemas;
+
+            /**
+             * 连接超时（秒）
+             */
+            private Integer connectTimeout = 30;
+
+            /**
+             * 查询超时（秒）
+             */
+            private Integer queryTimeout = 60;
+
+            // Manual getters for Lombok compatibility
+            public String getType() {
+                return type;
+    public Boolean getEnabled() {
+        return enabled;
+    }
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
+    }
+    public List<DatabaseConfig> getDatabases() {
+        return databases;
+    }
+    public void setDatabases(List<DatabaseConfig> databases) {
+        this.databases = databases;
+    }
+    public String getType() {
+        return type;
+    }
+    public void setType(String type) {
+        this.type = type;
+    }
+    public String getVersion() {
+        return version;
+    }
+    public void setVersion(String version) {
+        this.version = version;
+    }
+    public String getHost() {
+        return host;
+    }
+    public void setHost(String host) {
+        this.host = host;
+    }
+    public Integer getPort() {
+        return port;
+    }
+    public void setPort(Integer port) {
+        this.port = port;
+    }
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    public String getUsername() {
+        return username;
+    }
+    public void setUsername(String username) {
+        this.username = username;
+    }
+    public String getPassword() {
+        return password;
+    }
+    public void setPassword(String password) {
+        this.password = password;
+    }
+    public List<String> getSchemas() {
+        return schemas;
+    }
+    public void setSchemas(List<String> schemas) {
+        this.schemas = schemas;
+    }
+    public Integer getConnectTimeout() {
+        return connectTimeout;
+    }
+    public void setConnectTimeout(Integer connectTimeout) {
+        this.connectTimeout = connectTimeout;
+    }
+    public Integer getQueryTimeout() {
+        return queryTimeout;
+    }
+    public void setQueryTimeout(Integer queryTimeout) {
+        this.queryTimeout = queryTimeout;
+    }
+            }
+
+            public String getVersion() {
+                return version;
+            }
+
+            public String getHost() {
+                return host;
+            }
+
+            public Integer getPort() {
+                return port;
+            }
+
+            public String getName() {
+                return name;
+            }
+
+            public String getUsername() {
+                return username;
+            }
+
+            public String getPassword() {
+                return password;
+            }
+
+            public List<String> getSchemas() {
+                return schemas;
+            }
+
+            public Integer getConnectTimeout() {
+                return connectTimeout;
+            }
+
+            public Integer getQueryTimeout() {
+                return queryTimeout;
+            }
+        }
+
+        // Manual getters for Lombok compatibility
+        public List<DatabaseConfig> getDatabases() {
+            return databases;
+        }
+
+        public void setDatabases(List<DatabaseConfig> databases) {
+            this.databases = databases;
+        }
+
+        public Boolean getEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(Boolean enabled) {
+            this.enabled = enabled;
+        }
+    }
+
+    /**
+     * 文件模块配置
+     */
+    public static class FileConfig {
+        /**
+         * 是否启用
+         */
+        private Boolean enabled = true;
+
+        /**
+         * 扫描路径列表
+         */
+        private List<String> scanPaths;
+
+        /**
+         * 文件扩展名过滤
+         */
+        private List<String> fileExtensions;
+
+        /**
+         * 是否递归扫描
+         */
+        private Boolean recursive = true;
+
+        /**
+         * 最大扫描深度
+         */
+        private Integer maxDepth = 10;
+
+        /**
+         * 最小文件大小（字节）
+         */
+        private Long minFileSize = 0L;
+
+        /**
+         * 最大文件大小（字节）
+         */
+        private Long maxFileSize = Long.MAX_VALUE;
+
+        /**
+         * 是否计算 MD5
+         */
+        private Boolean calculateMD5 = false;
+
+        /**
+         * 是否包含隐藏文件
+         */
+        private Boolean includeHidden = false;
+
+        /**
+         * 排除目录模式
+         */
+        private List<String> excludePatterns;
+
+        // Manual getters for Lombok compatibility
+        public List<String> getScanPaths() {
+            return scanPaths;
+    public Boolean getEnabled() {
+        return enabled;
+    }
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
+    }
+    public List<String> getScanPaths() {
+        return scanPaths;
+    }
+    public void setScanPaths(List<String> scanPaths) {
+        this.scanPaths = scanPaths;
+    }
+    public List<String> getFileExtensions() {
+        return fileExtensions;
+    }
+    public void setFileExtensions(List<String> fileExtensions) {
+        this.fileExtensions = fileExtensions;
+    }
+    public Boolean getRecursive() {
+        return recursive;
+    }
+    public void setRecursive(Boolean recursive) {
+        this.recursive = recursive;
+    }
+    public Integer getMaxDepth() {
+        return maxDepth;
+    }
+    public void setMaxDepth(Integer maxDepth) {
+        this.maxDepth = maxDepth;
+    }
+    public Long getMinFileSize() {
+        return minFileSize;
+    }
+    public void setMinFileSize(Long minFileSize) {
+        this.minFileSize = minFileSize;
+    }
+    public Long getMaxFileSize() {
+        return maxFileSize;
+    }
+    public void setMaxFileSize(Long maxFileSize) {
+        this.maxFileSize = maxFileSize;
+    }
+    public Boolean getCalculateMD5() {
+        return calculateMD5;
+    }
+    public void setCalculateMD5(Boolean calculateMD5) {
+        this.calculateMD5 = calculateMD5;
+    }
+    public Boolean getIncludeHidden() {
+        return includeHidden;
+    }
+    public void setIncludeHidden(Boolean includeHidden) {
+        this.includeHidden = includeHidden;
+    }
+    public List<String> getExcludePatterns() {
+        return excludePatterns;
+    }
+    public void setExcludePatterns(List<String> excludePatterns) {
+        this.excludePatterns = excludePatterns;
+    }
+        }
+
+        public List<String> getFileExtensions() {
+            return fileExtensions;
+        }
+
+        public Boolean getRecursive() {
+            return recursive;
+        }
+
+        public Integer getMaxDepth() {
+            return maxDepth;
+        }
+
+        public Long getMinFileSize() {
+            return minFileSize;
+        }
+
+        public Long getMaxFileSize() {
+            return maxFileSize;
+        }
+
+        public Boolean getCalculateMD5() {
+            return calculateMD5;
+        }
+
+        public Boolean getIncludeHidden() {
+            return includeHidden;
+        }
+
+        public List<String> getExcludePatterns() {
+            return excludePatterns;
+        }
+
+        public Boolean getEnabled() {
+            return enabled;
+        }
+    }
+
+    /**
+     * 网络模块配置
+     */
+    public static class NetworkConfig {
+        /**
+         * 是否启用
+         */
+        private Boolean enabled = true;
+
+        /**
+         * 采集间隔（毫秒）
+         */
+        private Long collectInterval = 30000L;
+
+        /**
+         * Ping目标列表（IP或域名）
+         */
+        private List<String> targets;
+
+        /**
+         * Ping超时时间（秒）
+         */
+        private Integer timeout = 5;
+
+        /**
+         * Ping发送次数
+         */
+        private Integer count = 4;
+
+        /**
+         * UDP 探针 Key
+         */
+        private String probeKey = "probe-network-001";
+    public Boolean getEnabled() {
+        return enabled;
+    }
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
+    }
+    public Long getCollectInterval() {
+        return collectInterval;
+    }
+    public void setCollectInterval(Long collectInterval) {
+        this.collectInterval = collectInterval;
+    }
+    public List<String> getTargets() {
+        return targets;
+    }
+    public void setTargets(List<String> targets) {
+        this.targets = targets;
+    }
+    public Integer getTimeout() {
+        return timeout;
+    }
+    public void setTimeout(Integer timeout) {
+        this.timeout = timeout;
+    }
+    public Integer getCount() {
+        return count;
+    }
+    public void setCount(Integer count) {
+        this.count = count;
+    }
+    public String getProbeKey() {
+        return probeKey;
+    }
+    public void setProbeKey(String probeKey) {
+        this.probeKey = probeKey;
+    }
+    }
+
+    /**
+     * 启动配置
+     */
+    public static class Startup {
+        /**
+         * 启动时是否立即执行
+         */
+        private Boolean executeImmediately = false;
+
+        /**
+         * 执行完毕是否退出
+         */
+        private Boolean exitAfterExecution = false;
+
+        /**
+         * 是否自动注册到服务端
+         */
+        private Boolean autoRegister = true;
+
+        /**
+         * 注册重试次数
+         */
+        private Integer registerRetryTimes = 3;
+
+        /**
+         * 注册重试间隔（毫秒）
+         */
+        private Long registerRetryInterval = 5000L;
+
+        // Getters and Setters
+        public Boolean getExitAfterExecution() {
+            return exitAfterExecution;
+        }
+        public void setExitAfterExecution(Boolean exitAfterExecution) {
+            this.exitAfterExecution = exitAfterExecution;
+        }
+        public Boolean getAutoRegister() {
+            return autoRegister;
+        }
+        public void setAutoRegister(Boolean autoRegister) {
+            this.autoRegister = autoRegister;
+        }
+        public Integer getRegisterRetryTimes() {
+            return registerRetryTimes;
+        }
+        public void setRegisterRetryTimes(Integer registerRetryTimes) {
+            this.registerRetryTimes = registerRetryTimes;
+        }
+        public Long getRegisterRetryInterval() {
+            return registerRetryInterval;
+        }
+        public void setRegisterRetryInterval(Long registerRetryInterval) {
+            this.registerRetryInterval = registerRetryInterval;
+    public Boolean getExecuteImmediately() {
+        return executeImmediately;
+    }
+    public void setExecuteImmediately(Boolean executeImmediately) {
+        this.executeImmediately = executeImmediately;
+    }
+    public Boolean getExitAfterExecution() {
+        return exitAfterExecution;
+    }
+    public void setExitAfterExecution(Boolean exitAfterExecution) {
+        this.exitAfterExecution = exitAfterExecution;
+    }
+    public Boolean getAutoRegister() {
+        return autoRegister;
+    }
+    public void setAutoRegister(Boolean autoRegister) {
+        this.autoRegister = autoRegister;
+    }
+    public Integer getRegisterRetryTimes() {
+        return registerRetryTimes;
+    }
+    public void setRegisterRetryTimes(Integer registerRetryTimes) {
+        this.registerRetryTimes = registerRetryTimes;
+    }
+    public Long getRegisterRetryInterval() {
+        return registerRetryInterval;
+    }
+    public void setRegisterRetryInterval(Long registerRetryInterval) {
+        this.registerRetryInterval = registerRetryInterval;
+    }
+        }
+    }
+}

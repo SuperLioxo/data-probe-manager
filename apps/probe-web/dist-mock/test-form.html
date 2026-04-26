@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试表单</title>
+</head>
+<body>
+    <h1>ProbeQuickCreate 组件测试</h1>
+    <p>打开 http://localhost:5173 并在控制台运行以下代码：</p>
+    <pre>
+// 检查 ProbeQuickCreate 组件的模板
+const quickCreateComponent = document.querySelector('.el-dialog[style*="display"]')
+console.log('组件:', quickCreateComponent)
+    </pre>
+
+    <h2>测试步骤：</h2>
+    <ol>
+        <li>打开 http://localhost:5173</li>
+        <li>打开浏览器控制台（F12）</li>
+        <li>点击"快速创建探针"按钮</li>
+        <li>在控制台运行：<code>document.querySelector('input[placeholder*="127.0.0.1"]')</code></li>
+        <li>查看输入框是否存在</li>
+        <li>不填写主机IP，填写其他字段</li>
+        <li>点击"创建探针"</li>
+        <li>查看控制台输出</li>
+    </ol>
+
+    <h2>预期结果：</h2>
+    <ul>
+        <li>应该找到输入框：&lt;input placeholder="留空使用默认值 127.0.0.1"&gt;</li>
+        <li>控制台应该显示：[表单验证] ✅ 验证通过！</li>
+        <li>不应该有 "请输入主机IP" 的错误</li>
+    </ul>
+</body>
+</html>

@@ -1,0 +1,5 @@
+--- /dev/null
++++ /dev/null
+@@ -239 +239 @@
+-        return ControllerHelper.safeGet(() -> {
++        return ControllerHelper.<Map<String, Object>>safeGet(() -> {

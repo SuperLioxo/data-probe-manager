@@ -1,0 +1,75 @@
+package com.lixin.probe.agent.plugin.impl;
+
+import com.lixin.probe.agent.plugin.AbstractDatabasePlugin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+
+/**
+ * SQL Server 数据库插件
+ */
+@Component
+public class SQLServerDatabasePlugin extends AbstractDatabasePlugin {
+
+    private static final Logger log = LoggerFactory.getLogger(SQLServerDatabasePlugin.class);
+    @Override
+    protected String getDriverClass() {
+        return "com.microsoft.sqlserver.jdbc.SQLServerDriver";
+    }
+
+    @Override
+    public String getDbType() {
+        return "sqlserver";
+    }
+
+    @Override
+    public String getVersionRange() {
+        return "2016,2017,2019,2022";
+    }
+
+    @Override
+    public String buildUrl(Map<String, Object> params) {
+        String host = (String) params.get("host");
+        Integer port = (Integer) params.get("port");
+        String name = (String) params.get("name");
+        return String.format("jdbc:sqlserver://%s:%d;databaseName=%s;encrypt=false;trustServerCertificate=true",
+                host, port, name);
+    }
+
+    @Override
+    public String escapeTableName(String fullTableName) {
+        if (fullTableName == null) {
+            return "";
+        }
+        // SQL Server 使用方括号转义
+        return "[" + fullTableName.replace(".", "].[") + "]";
+    }
+
+    @Override
+    public String getCountSql(boolean isPrecise, Map<String, Object> params) {
+        String tableName = escapeTableName((String) params.get("table"));
+        if (isPrecise) {
+            return String.format("SELECT COUNT(*) FROM %s", tableName);
+        }
+        // SQL Server 使用 sys.partitions 估算
+        String database = (String) params.get("database");
+        return String.format("SELECT SUM(row_count) FROM sys.dm_db_partition_stats " +
+                "WHERE object_id = OBJECT_ID('%s.%s')",
+                database, params.get("table"));
+    }
+
+    @Override
+    public String getStorageSql(Map<String, Object> params) {
+        String database = (String) params.get("database");
+        String table = (String) params.get("table");
+        // SQL Server 使用 sys.allocation_units 查询
+        return String.format("SELECT SUM(a.total_pages) * 8 FROM sys.allocation_units a " +
+                "INNER JOIN sys.partitions p ON a.container_id = p.partition_id " +
+                "INNER JOIN sys.tables t ON p.object_id = t.object_id " +
+                "INNER JOIN sys.schemas s ON t.schema_id = s.schema_id " +
+                "WHERE s.name + '.' + t.name = '%s.%s'",
+                database, table);
+    }
+}

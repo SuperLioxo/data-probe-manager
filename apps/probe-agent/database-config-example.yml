@@ -1,0 +1,40 @@
+# 数据库连接配置示例文件
+# 此文件应由Agent管理员根据实际环境配置
+#
+# 配置说明：
+# 1. 每个数据库实例需要一个唯一的instanceId
+# 2. databaseType必须是支持的类型: mysql, postgresql, oracle, sqlserver
+# 3. 普通用户权限即可，不需要管理员权限
+# 4. 建议为监控创建专用数据库账号
+
+databases:
+  # PostgreSQL示例配置
+  - instanceId: "postgres-local"
+    databaseType: "postgresql"
+    host: "localhost"
+    port: 5433
+    databaseName: "probe_db"
+    username: "probe_user"
+    password: "probe_pass"
+    schemas: ["public"]
+    enabled: true
+    description: "本地PostgreSQL数据库"
+
+  # MySQL示例配置
+  - instanceId: "mysql-local"
+    databaseType: "mysql"
+    host: "localhost"
+    port: 3306
+    databaseName: "test_db"
+    username: "root"
+    password: "root"
+    schemas: ["test_db"]
+    enabled: true
+    description: "本地MySQL测试数据库"
+
+# 全局配置
+global:
+  connectionTimeout: 30
+  queryTimeout: 60
+  maxConnections: 10
+  collectInterval: 300  # 5分钟采集一次元数据

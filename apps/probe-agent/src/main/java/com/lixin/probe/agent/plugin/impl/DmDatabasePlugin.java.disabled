@@ -1,0 +1,68 @@
+package com.lixin.probe.agent.plugin.impl;
+
+import com.lixin.probe.agent.plugin.AbstractDatabasePlugin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+
+/**
+ * 达梦数据库插件
+ */
+@Component
+public class DmDatabasePlugin extends AbstractDatabasePlugin {
+
+    private static final Logger log = LoggerFactory.getLogger(DmDatabasePlugin.class);
+    @Override
+    protected String getDriverClass() {
+        return "dm.jdbc.driver.DmDriver";
+    }
+
+    @Override
+    public String getDbType() {
+        return "dm";
+    }
+
+    @Override
+    public String getVersionRange() {
+        return "7,8";
+    }
+
+    @Override
+    public String buildUrl(Map<String, Object> params) {
+        String host = (String) params.get("host");
+        Integer port = (Integer) params.get("port");
+        String name = (String) params.get("name");
+        return String.format("jdbc:dm://%s:%d/%s?zeroDateTimeBehavior=convertToNull&useSSL=false",
+                host, port, name);
+    }
+
+    @Override
+    public String escapeTableName(String fullTableName) {
+        if (fullTableName == null) {
+            return "";
+        }
+        // 达梦使用双引号转义
+        return "\"" + fullTableName.replace(".", "\".\"") + "\"";
+    }
+
+    @Override
+    public String getCountSql(boolean isPrecise, Map<String, Object> params) {
+        String tableName = escapeTableName((String) params.get("table"));
+        if (isPrecise) {
+            return String.format("SELECT COUNT(*) FROM %s", tableName);
+        }
+        // 达梦使用 USER_TABLES 估算
+        return String.format("SELECT NUM_ROWS FROM USER_TABLES WHERE TABLE_NAME = '%s'",
+                params.get("table").toString().toUpperCase());
+    }
+
+    @Override
+    public String getStorageSql(Map<String, Object> params) {
+        String table = (String) params.get("table");
+        // 达梦使用 USER_SEGMENTS 查询
+        return String.format("SELECT BYTES FROM USER_SEGMENTS WHERE SEGMENT_NAME = '%s'",
+                table.toUpperCase());
+    }
+}

@@ -1,0 +1,60 @@
+package com.lixin.probe.agent.plugin.impl;
+
+import com.lixin.probe.agent.plugin.AbstractDatabasePlugin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+
+/**
+ * SQLite 数据库插件
+ */
+@Component
+public class SQLiteDatabasePlugin extends AbstractDatabasePlugin {
+
+    private static final Logger log = LoggerFactory.getLogger(SQLiteDatabasePlugin.class);
+    @Override
+    protected String getDriverClass() {
+        return "org.sqlite.JDBC";
+    }
+
+    @Override
+    public String getDbType() {
+        return "sqlite";
+    }
+
+    @Override
+    public String getVersionRange() {
+        return "3";
+    }
+
+    @Override
+    public String buildUrl(Map<String, Object> params) {
+        String path = (String) params.get("path");
+        return String.format("jdbc:sqlite:%s", path);
+    }
+
+    @Override
+    public String escapeTableName(String fullTableName) {
+        if (fullTableName == null) {
+            return "";
+        }
+        // SQLite 使用方括号或双引号转义
+        return "[" + fullTableName + "]";
+    }
+
+    @Override
+    public String getCountSql(boolean isPrecise, Map<String, Object> params) {
+        String tableName = escapeTableName((String) params.get("table"));
+        // SQLite 只支持精确计数
+        return String.format("SELECT COUNT(*) FROM %s", tableName);
+    }
+
+    @Override
+    public String getStorageSql(Map<String, Object> params) {
+        String table = (String) params.get("table");
+        // SQLite 使用 dbstat 查询
+        return String.format("SELECT SUM(pgsize) FROM dbstat WHERE name = '%s'", table);
+    }
+}

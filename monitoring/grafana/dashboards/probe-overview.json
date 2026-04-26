@@ -1,0 +1,68 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "title": "Online Probes",
+      "type": "stat",
+      "targets": [{ "expr": "probe_online_count", "refId": "A" }],
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "value": null, "color": "red" }, { "value": 1, "color": "green" }] } } }
+    },
+    {
+      "title": "Active WebSocket Connections",
+      "type": "stat",
+      "targets": [{ "expr": "websocket_connections_active", "refId": "A" }],
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 }
+    },
+    {
+      "title": "Alerts Triggered (5m)",
+      "type": "stat",
+      "targets": [{ "expr": "increase(alert_triggered_total[5m])", "refId": "A" }],
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 }
+    },
+    {
+      "title": "Sync Tasks Running",
+      "type": "stat",
+      "targets": [{ "expr": "sync_tasks_running", "refId": "A" }],
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 }
+    },
+    {
+      "title": "HTTP Request Rate",
+      "type": "timeseries",
+      "targets": [{ "expr": "rate(http_server_requests_seconds_count[5m])", "refId": "A", "legendFormat": "{{uri}}" }],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 }
+    },
+    {
+      "title": "JVM Memory Usage",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "jvm_memory_used_bytes{area='heap'}", "refId": "A", "legendFormat": "Heap Used" },
+        { "expr": "jvm_memory_max_bytes{area='heap'}", "refId": "B", "legendFormat": "Heap Max" }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 }
+    },
+    {
+      "title": "File Scan Duration",
+      "type": "timeseries",
+      "targets": [{ "expr": "histogram_quantile(0.95, rate(file_scan_duration_seconds_bucket[5m]))", "refId": "A", "legendFormat": "p95" }],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 }
+    },
+    {
+      "title": "Business Exceptions",
+      "type": "timeseries",
+      "targets": [{ "expr": "increase(business_exceptions_total[5m])", "refId": "A", "legendFormat": "{{exception}}" }],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["probe"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "Probe Manager Overview",
+  "uid": "probe-overview",
+  "version": 1
+}

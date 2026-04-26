@@ -1,0 +1,3 @@
+com.lixin.probe.agent.plugin.impl.nosql.MongoPlugin
+com.lixin.probe.agent.plugin.impl.nosql.RedisPlugin
+com.lixin.probe.agent.plugin.impl.nosql.ElasticsearchPlugin

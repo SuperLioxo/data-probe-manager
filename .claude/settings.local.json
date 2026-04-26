@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(java:*)",
+      "Bash(mvn:*)",
+      "Bash(docker-compose up:*)"
+    ]
+  }
+}

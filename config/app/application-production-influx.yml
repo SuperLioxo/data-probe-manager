@@ -1,0 +1,64 @@
+# InfluxDB生产环境配置示例
+#
+# 使用方法：
+# 1. 复制此文件到应用程序资源目录或配置目录
+# 2. 设置环境变量：SPRING_PROFILES_ACTIVE=prod,influx
+# 3. 或在启动时指定：--spring.profiles.active=prod,influx
+
+# InfluxDB时序数据库配置
+influx:
+  # InfluxDB服务器URL（生产环境请使用实际地址）
+  url: ${INFLUX_URL:https://influxdb.production.example.com}
+  # 认证令牌（建议通过环境变量或密钥管理系统注入）
+  token: ${INFLUX_TOKEN}
+  # 组织名称
+  org: ${INFLUX_ORG:production-org}
+  # 存储桶名称
+  bucket: ${INFLUX_BUCKET:probe-metrics-prod}
+  # 是否启用InfluxDB
+  enabled: true
+
+  # 写入选项配置（生产环境优化）
+  write-options:
+    # 批量写入大小（生产环境可以适当增大）
+    batch-size: 5000
+    # 刷新间隔（毫秒）
+    flush-interval: 5000
+    # 抖动间隔（毫秒），避免多个客户端同时写入
+    jitter-interval: 1000
+    # 缓冲区限制（条数）
+    buffer-limit: 50000
+
+  # 重试选项配置（生产环境优化）
+  retry-options:
+    # 最大重试次数
+    max-retries: 5
+    # 初始重试间隔（毫秒）
+    initial-interval: 2000
+    # 最大重试间隔（毫秒）
+    max-interval: 30000
+    # 间隔乘数（指数退避）
+    multiplier: 2.0
+
+# 生产环境日志配置
+logging:
+  level:
+    com.lixin.probe.timeseries: INFO
+    com.influxdb: WARN
+
+# 生产环境监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  health:
+    influxdb:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+      environment: production

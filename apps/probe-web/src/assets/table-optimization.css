@@ -1,0 +1,320 @@
+/* ===================================
+   通用表格优化样式
+   解决：操作按钮布局、分页冗余、列宽对齐问题
+   =================================== */
+
+/* ------------------------------------
+   1. 操作按钮布局优化
+   ------------------------------------ */
+.table-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.table-actions-primary,
+.table-actions-special,
+.table-actions-danger {
+  display: flex;
+  gap: 6px;
+}
+
+.table-action-btn {
+  min-width: 70px;
+  height: 32px;
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.table-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.table-action-btn:active {
+  transform: translateY(0);
+}
+
+.table-action-btn .el-icon {
+  font-size: 14px;
+}
+
+/* 删除按钮特殊样式 */
+.table-action-btn-delete {
+  background-color: var(--el-color-danger);
+  border-color: var(--el-color-danger);
+  color: #fff;
+}
+
+.table-action-btn-delete:hover {
+  background-color: #f56c6c;
+  border-color: #f56c6c;
+}
+
+/* ------------------------------------
+   2. 分页优化 - 数据少时隐藏
+   ------------------------------------ */
+.table-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.table-pagination.hidden {
+  display: none;
+}
+
+/* ------------------------------------
+   3. 表格列宽和对齐优化
+   ------------------------------------ */
+.optimized-table {
+  width: 100%;
+  table-layout: auto;
+}
+
+/* 文本对齐 */
+.text-align-left {
+  text-align: left;
+}
+
+.text-align-center {
+  text-align: center;
+}
+
+.text-align-right {
+  text-align: right;
+}
+
+/* 空值样式 */
+.table-empty {
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+/* 表格单元格基础样式 */
+.table-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-cell-wrap {
+  overflow: visible;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+/* ------------------------------------
+   4. 响应式优化
+   ------------------------------------ */
+@media (max-width: 1200px) {
+  .table-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .table-actions-primary,
+  .table-actions-special,
+  .table-actions-danger {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .table-pagination {
+    justify-content: center;
+  }
+
+  .table-action-btn {
+    min-width: 60px;
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+}
+
+/* ------------------------------------
+   5. 表格行状态样式
+   ------------------------------------ */
+.table-row-error {
+  background-color: #fef0f0 !important;
+}
+
+.table-row-offline {
+  background-color: #f4f4f5 !important;
+}
+
+.table-row-warning {
+  background-color: #fdf6ec !important;
+}
+
+/* 深色模式适配 */
+.dark .table-row-error {
+  background-color: rgba(245, 108, 108, 0.15) !important;
+}
+
+.dark .table-row-offline {
+  background-color: rgba(144, 147, 153, 0.1) !important;
+}
+
+.dark .table-row-warning {
+  background-color: rgba(230, 162, 60, 0.15) !important;
+}
+
+/* ------------------------------------
+   6. 表格加载状态
+   ------------------------------------ */
+.table-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.table-skeleton-row {
+  height: 48px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: table-skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.dark .table-skeleton-row {
+  background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+}
+
+@keyframes table-skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ------------------------------------
+   7. 工具类
+   ------------------------------------ */
+.table-nowrap {
+  white-space: nowrap;
+}
+
+.table-wrap {
+  white-space: normal;
+  word-break: break-word;
+}
+
+.table-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------
+   8. Element Plus 表格覆盖样式
+   ------------------------------------ */
+.el-table {
+  --el-table-border-color: var(--border-color);
+  --el-table-header-bg-color: var(--bg-secondary);
+  --el-table-row-hover-bg-color: var(--bg-hover);
+}
+
+.el-table th {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.el-table tr:hover {
+  cursor: pointer;
+}
+
+/* 确保表格内容不溢出 */
+.el-table .el-table__cell {
+  padding: 12px 0;
+}
+
+/* 标签样式优化 */
+.el-table .el-tag {
+  margin: 0;
+}
+
+/* 按钮组间距 */
+.el-button-group .el-button {
+  margin-left: 0;
+}
+
+/* ------------------------------------
+   9. 分页组件优化
+   ------------------------------------ */
+.el-pagination {
+  --el-pagination-text-color: var(--text-primary);
+  --el-pagination-bg-color: var(--bg-card);
+  --el-pagination-button-bg-color: var(--bg-card);
+  --el-pagination-button-color: var(--text-primary);
+}
+
+.el-pagination.is-background .el-pager li {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.el-pagination.is-background .el-pager li:hover {
+  background-color: var(--bg-hover);
+}
+
+.el-pagination.is-background .el-pager li.is-active {
+  background-color: var(--primary-500);
+  border-color: var(--primary-500);
+  color: #fff;
+}
+
+/* ------------------------------------
+   10. 触摸优化（移动端）
+   ------------------------------------ */
+@media (max-width: 768px) {
+  /* 增大触摸目标 */
+  .table-action-btn,
+  .el-pagination button,
+  .el-pagination .el-pager li {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* 表格横向滚动 */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-responsive .el-table {
+    min-width: 600px;
+  }
+}
+
+/* ------------------------------------
+   11. 打印样式
+   ------------------------------------ */
+@media print {
+  .table-actions,
+  .table-pagination {
+    display: none !important;
+  }
+
+  .el-table {
+    border: 1px solid #000;
+  }
+
+  .el-table td,
+  .el-table th {
+    border: 1px solid #000;
+  }
+}

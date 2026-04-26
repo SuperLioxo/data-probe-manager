@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>测试数据库连接API</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .section {
+      margin-bottom: 30px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .section h3 {
+      margin-top: 0;
+    }
+    button {
+      padding: 10px 20px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 3px;
+      overflow-x: auto;
+    }
+    .status {
+      padding: 5px 10px;
+      border-radius: 3px;
+      display: inline-block;
+      margin-top: 10px;
+    }
+    .success {
+      background: #67c23a;
+      color: white;
+    }
+    .error {
+      background: #f56c6c;
+      color: white;
+    }
+    .info {
+      background: #909399;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>数据库连接API测试</h1>
+
+  <div class="section">
+    <h3>1. 检查登录状态</h3>
+    <button onclick="checkLogin()">检查Token</button>
+    <div id="login-status"></div>
+  </div>
+
+  <div class="section">
+    <h3>2. 获取探针详情（包含currentConnectionId）</h3>
+    <button onclick="getProbeDetails()">获取探针详情</button>
+    <div id="probe-details"></div>
+  </div>
+
+  <div class="section">
+    <h3>3. 获取数据库连接列表</h3>
+    <button onclick="getConnections()">获取连接列表</button>
+    <div id="connections"></div>
+  </div>
+
+  <div class="section">
+    <h3>4. 完整流程测试</h3>
+    <button onclick="runFullTest()">运行完整测试</button>
+    <div id="full-test"></div>
+  </div>
+
+  <script>
+    const ADMIN_URL = 'http://localhost:8080';
+    const PROBE_KEY = 'AGENT-database-0jltda-92w';
+
+    function getToken() {
+      return localStorage.getItem('token') || sessionStorage.getItem('token');
+    }
+
+    function checkLogin() {
+      const token = getToken();
+      const statusDiv = document.getElementById('login-status');
+
+      if (token) {
+        statusDiv.innerHTML = `<span class="status success">✓ 已登录，Token存在</span>`;
+      } else {
+        statusDiv.innerHTML = `<span class="status error">✗ 未登录，Token不存在</span>
+          <p>请先访问 <a href="http://localhost:5173" target="_blank">http://localhost:5173</a> 登录系统</p>`;
+      }
+    }
+
+    async function getProbeDetails() {
+      const token = getToken();
+      const resultDiv = document.getElementById('probe-details');
+
+      if (!token) {
+        resultDiv.innerHTML = `<span class="status error">请先登录</span>`;
+        return;
+      }
+
+      try {
+        resultDiv.innerHTML = `<span class="status info">加载中...</span>`;
+
+        const response = await fetch(`${ADMIN_URL}/api/database-probes/probe/${PROBE_KEY}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const data = await response.json();
+        console.log('探针详情响应:', data);
+
+        if (data.code === 200) {
+          resultDiv.innerHTML = `
+            <span class="status success">✓ 获取成功</span>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+            <p><strong>当前连接ID:</strong> ${data.data?.currentConnectionId || '未设置'}</p>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <span class="status error">✗ 获取失败</span>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <span class="status error">✗ 请求错误</span>
+          <p>${error.message}</p>
+        `;
+      }
+    }
+
+    async function getConnections() {
+      const token = getToken();
+      const resultDiv = document.getElementById('connections');
+
+      if (!token) {
+        resultDiv.innerHTML = `<span class="status error">请先登录</span>`;
+        return;
+      }
+
+      try {
+        resultDiv.innerHTML = `<span class="status info">加载中...</span>`;
+
+        const response = await fetch(`${ADMIN_URL}/api/database-connections/type/PostgreSQL?probeKey=${PROBE_KEY}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const data = await response.json();
+        console.log('连接列表响应:', data);
+
+        if (data.code === 200) {
+          const connections = data.data || [];
+          resultDiv.innerHTML = `
+            <span class="status success">✓ 获取成功，共 ${connections.length} 个连接</span>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+            <ul>
+              ${connections.map(c => `
+                <li>
+                  <strong>${c.name}</strong> (${c.databaseHost}:${c.databasePort}/${c.databaseName})
+                  <br>连接ID: ${c.id}
+                </li>
+              `).join('')}
+            </ul>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <span class="status error">✗ 获取失败</span>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <span class="status error">✗ 请求错误</span>
+          <p>${error.message}</p>
+        `;
+      }
+    }
+
+    async function runFullTest() {
+      const resultDiv = document.getElementById('full-test');
+      const token = getToken();
+
+      if (!token) {
+        resultDiv.innerHTML = `<span class="status error">请先登录</span>`;
+        return;
+      }
+
+      resultDiv.innerHTML = `<span class="status info">运行中...</span>`;
+
+      try {
+        // 步骤1: 获取探针详情
+        const probeResponse = await fetch(`${ADMIN_URL}/api/database-probes/probe/${PROBE_KEY}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const probeData = await probeResponse.json();
+
+        let output = `<h4>步骤1: 探针详情</h4>`;
+        if (probeData.code === 200) {
+          output += `<span class="status success">✓ 成功</span>`;
+          output += `<p>探针名称: ${probeData.data.name}</p>`;
+          output += `<p>当前连接ID: ${probeData.data.currentConnectionId || '未设置'}</p>`;
+        } else {
+          output += `<span class="status error">✗ 失败: ${probeData.message}</span>`;
+        }
+
+        // 步骤2: 获取连接列表
+        const connResponse = await fetch(`${ADMIN_URL}/api/database-connections/type/PostgreSQL?probeKey=${PROBE_KEY}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const connData = await connResponse.json();
+
+        output += `<h4>步骤2: 连接列表</h4>`;
+        if (connData.code === 200) {
+          const connections = connData.data || [];
+          output += `<span class="status success">✓ 成功，找到 ${connections.length} 个连接</span>`;
+          output += `<ul>`;
+          connections.forEach(c => {
+            output += `<li>${c.name} (ID: ${c.id}) - ${c.databaseHost}:${c.databasePort}/${c.databaseName}</li>`;
+          });
+          output += `</ul>`;
+
+          // 步骤3: 判断当前连接
+          const currentId = probeData.data?.currentConnectionId;
+          output += `<h4>步骤3: 当前连接状态</h4>`;
+          if (currentId) {
+            const currentConn = connections.find(c => c.id === currentId);
+            if (currentConn) {
+              output += `<span class="status success">✓ 当前连接: ${currentConn.name}</span>`;
+            } else {
+              output += `<span class="status error">✗ 当前连接ID ${currentId} 在列表中不存在</span>`;
+            }
+          } else {
+            output += `<span class="status info">⚠ 未设置当前连接，应默认选择第一个</span>`;
+          }
+        } else {
+          output += `<span class="status error">✗ 失败: ${connData.message}</span>`;
+        }
+
+        resultDiv.innerHTML = output;
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <span class="status error">✗ 测试失败</span>
+          <p>${error.message}</p>
+        `;
+      }
+    }
+
+    // 页面加载时自动检查登录状态
+    window.onload = () => {
+      checkLogin();
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lixin.probe.mapper.DatabaseMetadataMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.lixin.probe.entity.DatabaseMetadata">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="probe_key" property="probeKey" jdbcType="VARCHAR"/>
+        <result column="database_type" property="databaseType" jdbcType="VARCHAR"/>
+        <result column="database_name" property="databaseName" jdbcType="VARCHAR"/>
+        <result column="version" property="version" jdbcType="VARCHAR"/>
+        <result column="charset" property="charset" jdbcType="VARCHAR"/>
+        <result column="collation" property="collation" jdbcType="VARCHAR"/>
+        <result column="url" property="url" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 基础列列表（带引号） -->
+    <sql id="Base_Column_List">
+        id, probe_key, database_type, database_name, "version", "charset", "collation", "url", create_time, update_time
+    </sql>
+
+    <!-- 根据probeKey查询 -->
+    <select id="selectByProbeKey" resultMap="BaseResultMap">
+        SELECT
+            id, probe_key, database_type, database_name,
+            "version" AS version, charset, "collation" AS collation,
+            "url" AS url, create_time, update_time
+        FROM database_metadata
+        WHERE probe_key = #{probeKey}
+        ORDER BY update_time DESC
+        LIMIT 1
+    </select>
+
+    <!-- 根据probeKey和databaseName查询 -->
+    <select id="selectByProbeKeyAndDatabase" resultMap="BaseResultMap">
+        SELECT
+            id, probe_key, database_type, database_name,
+            "version" AS version, charset, "collation" AS collation,
+            "url" AS url, create_time, update_time
+        FROM database_metadata
+        WHERE probe_key = #{probeKey}
+          AND database_name = #{databaseName}
+        ORDER BY update_time DESC
+        LIMIT 1
+    </select>
+
+</mapper>

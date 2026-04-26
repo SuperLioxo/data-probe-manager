@@ -1,0 +1,326 @@
+package com.lixin.probe.agent.plugin;
+
+import com.lixin.probe.agent.config.AgentProperties;
+import com.lixin.probe.agent.pojo.response.ProbeResponse;
+import com.lixin.probe.agent.result.CommonResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import jakarta.annotation.PostConstruct;
+import java.sql.Connection;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+
+/**
+ * 数据库插件管理器
+ * 负责管理所有数据库插件，提供统一的元数据和数据量采集接口
+ */
+@Component
+public class DatabasePluginManager {
+
+    private static final Logger log = LoggerFactory.getLogger(DatabasePluginManager.class);
+
+    private final Map<String, DatabasePlugin> pluginMap = new HashMap<>();
+
+    @Autowired(required = false)
+    private List<DatabasePlugin> plugins;
+
+    @Autowired
+    private AgentProperties agentProperties;
+
+    @PostConstruct
+    public void init() {
+        if (plugins == null || plugins.isEmpty()) {
+            log.warn("未发现任何数据库插件");
+            return;
+        }
+
+        for (DatabasePlugin plugin : plugins) {
+            String dbType = plugin.getDbType();
+            String[] versions = plugin.getVersionRange().split(",");
+            for (String version : versions) {
+                String key = dbType + "_" + version.trim();
+                pluginMap.put(key, plugin);
+            }
+            // 添加默认版本
+            pluginMap.put(dbType + "_default", plugin);
+        }
+
+        log.info("数据库插件初始化完成，已注册插件: {}", pluginMap.keySet());
+    }
+
+    /**
+     * 获取数据库插件
+     */
+    public DatabasePlugin getPlugin(String dbType, String version) {
+        if (dbType == null || dbType.trim().isEmpty()) {
+            throw new IllegalArgumentException("数据库类型不能为空");
+        }
+
+        String key = dbType.toLowerCase() + "_" + (version == null ? "default" : version.trim());
+        DatabasePlugin plugin = pluginMap.get(key);
+
+        if (plugin == null) {
+            plugin = pluginMap.get(dbType.toLowerCase() + "_default");
+        }
+
+        if (plugin == null) {
+            throw new RuntimeException("不支持的数据库类型: " + dbType);
+        }
+
+        return plugin;
+    }
+
+    /**
+     * 获取数据库连接
+     */
+    public CommonResult<Connection> getConnection(AgentProperties.DatabaseConfig config) {
+        try {
+            DatabasePlugin plugin = getPlugin(config.getType(), config.getVersion());
+
+            Map<String, Object> params = new HashMap<>();
+            params.put("host", config.getHost());
+            params.put("port", config.getPort());
+            params.put("name", config.getName());
+            params.put("username", config.getUsername());
+            params.put("password", config.getPassword());
+            params.put("database", config.getName());
+
+            // Build URL and get connection
+            String url = plugin.buildUrl(params);
+            Connection conn = plugin.getConnection(url, config.getUsername(), config.getPassword()).getData();
+            return CommonResult.success(conn);
+        } catch (Exception e) {
+            log.error("获取数据库连接失败", e);
+            return CommonResult.fail("获取数据库连接失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 批量获取数据库连接
+     */
+    public Map<String, Connection> batchGetConnections() {
+        Map<String, Connection> connMap = new HashMap<>();
+
+        List<AgentProperties.DatabaseConfig> databases =
+                agentProperties.getModules().getDatabase().getDatabases();
+
+        if (databases == null || databases.isEmpty()) {
+            log.warn("未配置数据库信息");
+            return connMap;
+        }
+
+        for (AgentProperties.DatabaseConfig config : databases) {
+            try {
+                CommonResult<Connection> result = getConnection(config);
+                if (result.getCode() > 0 && result.getData() != null) {
+                    String key = config.getType() + "_" + config.getName();
+                    connMap.put(key, result.getData());
+                    log.info("数据库连接创建成功: {}", key);
+                } else {
+                    log.error("数据库连接失败: {} - {}", config.getType(), result.getMessage());
+                }
+            } catch (Exception e) {
+                log.error("获取数据库连接异常: {}", config.getType(), e);
+            }
+        }
+
+        return connMap;
+    }
+
+    /**
+     * 获取数据库元数据
+     */
+    public CompletableFuture<ProbeResponse.Metadata> getMetadata(
+            Connection connection, AgentProperties.DatabaseConfig config) {
+
+        DatabasePlugin plugin = getPlugin(config.getType(), config.getVersion());
+
+        // Create config map for plugin
+        Map<String, Object> params = new HashMap<>();
+        params.put("type", config.getType());
+        params.put("host", config.getHost());
+        params.put("port", config.getPort());
+        params.put("name", config.getName());
+        params.put("username", config.getUsername());
+        params.put("password", config.getPassword());
+        params.put("database", config.getName());
+        params.put("version", config.getVersion());
+        if (config.getSchemas() != null && !config.getSchemas().isEmpty()) {
+            params.put("schemas", config.getSchemas());
+            params.put("schema", config.getSchemas().get(0));
+        }
+
+        return plugin.getMetadata(connection, params)
+                .thenApply(result -> result.getData());
+    }
+
+    /**
+     * 批量获取数据库元数据
+     */
+    public ProbeResponse.Metadata batchGetMetadata(Map<String, Connection> connMap) {
+        ProbeResponse.Metadata.Builder builder = ProbeResponse.Metadata.builder();
+        Map<String, ProbeResponse.Metadata.Database> databases = new HashMap<>();
+
+        List<AgentProperties.DatabaseConfig> dbConfigs =
+                agentProperties.getModules().getDatabase().getDatabases();
+
+        if (dbConfigs == null || dbConfigs.isEmpty()) {
+            log.warn("未配置数据库信息");
+            return builder.databases(databases).build();
+        }
+
+        for (AgentProperties.DatabaseConfig config : dbConfigs) {
+            String key = config.getType() + "_" + config.getName();
+            Connection conn = connMap.get(key);
+
+            if (conn == null) {
+                log.warn("数据库连接不存在: {}", key);
+                continue;
+            }
+
+            try {
+                DatabasePlugin plugin = getPlugin(config.getType(), config.getVersion());
+
+                // Create config map for plugin
+                Map<String, Object> params = new HashMap<>();
+                params.put("type", config.getType());
+                params.put("host", config.getHost());
+                params.put("port", config.getPort());
+                params.put("name", config.getName());
+                params.put("username", config.getUsername());
+                params.put("password", config.getPassword());
+                params.put("database", config.getName());
+                params.put("version", config.getVersion());
+                if (config.getSchemas() != null && !config.getSchemas().isEmpty()) {
+                    params.put("schemas", config.getSchemas());
+                    params.put("schema", config.getSchemas().get(0));
+                }
+
+                CompletableFuture<ProbeResponse.Metadata> future =
+                        plugin.getMetadata(conn, params)
+                                .thenApply(result -> result.getData());
+                ProbeResponse.Metadata result = future.get();
+
+                if (result != null && result.getDatabases() != null) {
+                    ProbeResponse.Metadata.Database dbMetadata =
+                            result.getDatabases().get(config.getName());
+                    if (dbMetadata != null) {
+                        databases.put(config.getName(), dbMetadata);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("获取数据库元数据异常: {}", key, e);
+            }
+        }
+
+        return builder.databases(databases).build();
+    }
+
+    /**
+     * 获取数据量信息
+     */
+    public CompletableFuture<ProbeResponse.DataSize> getDataSize(
+            Connection connection, AgentProperties.DatabaseConfig config) {
+
+        DatabasePlugin plugin = getPlugin(config.getType(), config.getVersion());
+
+        // Create config map for plugin
+        Map<String, Object> params = new HashMap<>();
+        params.put("type", config.getType());
+        params.put("host", config.getHost());
+        params.put("port", config.getPort());
+        params.put("name", config.getName());
+        params.put("username", config.getUsername());
+        params.put("password", config.getPassword());
+        params.put("database", config.getName());
+        params.put("version", config.getVersion());
+        if (config.getSchemas() != null && !config.getSchemas().isEmpty()) {
+            params.put("schemas", config.getSchemas());
+            params.put("schema", config.getSchemas().get(0));
+        }
+
+        return plugin.getDataSize(connection, params)
+                .thenApply(result -> result.getData());
+    }
+
+    /**
+     * 批量获取数据量信息
+     */
+    public ProbeResponse.DataSize batchGetDataSize(Map<String, Connection> connMap) {
+        ProbeResponse.DataSize.Builder builder = ProbeResponse.DataSize.builder();
+        Map<String, ProbeResponse.DataSize.Database> databases = new HashMap<>();
+
+        List<AgentProperties.DatabaseConfig> dbConfigs =
+                agentProperties.getModules().getDatabase().getDatabases();
+
+        if (dbConfigs == null || dbConfigs.isEmpty()) {
+            log.warn("未配置数据库信息");
+            return builder.databases(databases).build();
+        }
+
+        for (AgentProperties.DatabaseConfig config : dbConfigs) {
+            String key = config.getType() + "_" + config.getName();
+            Connection conn = connMap.get(key);
+
+            if (conn == null) {
+                log.warn("数据库连接不存在: {}", key);
+                continue;
+            }
+
+            try {
+                DatabasePlugin plugin = getPlugin(config.getType(), config.getVersion());
+
+                // Create config map for plugin
+                Map<String, Object> params = new HashMap<>();
+                params.put("type", config.getType());
+                params.put("host", config.getHost());
+                params.put("port", config.getPort());
+                params.put("name", config.getName());
+                params.put("username", config.getUsername());
+                params.put("password", config.getPassword());
+                params.put("database", config.getName());
+                params.put("version", config.getVersion());
+                if (config.getSchemas() != null && !config.getSchemas().isEmpty()) {
+                    params.put("schemas", config.getSchemas());
+                    params.put("schema", config.getSchemas().get(0));
+                }
+
+                CompletableFuture<ProbeResponse.DataSize> future =
+                        plugin.getDataSize(conn, params)
+                                .thenApply(result -> result.getData());
+                ProbeResponse.DataSize result = future.get();
+
+                if (result != null && result.getDatabases() != null) {
+                    ProbeResponse.DataSize.Database dbDataSize =
+                            result.getDatabases().get(config.getName());
+                    if (dbDataSize != null) {
+                        databases.put(config.getName(), dbDataSize);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("获取数据量信息异常: {}", key, e);
+            }
+        }
+
+        return builder.databases(databases).build();
+    }
+
+    /**
+     * 关闭所有数据库连接
+     */
+    public void closeAll(Map<String, Connection> connMap) {
+        for (Map.Entry<String, Connection> entry : connMap.entrySet()) {
+            try {
+                if (entry.getValue() != null && !entry.getValue().isClosed()) {
+                    entry.getValue().close();
+                    log.debug("关闭数据库连接: {}", entry.getKey());
+                }
+            } catch (Exception e) {
+                log.error("关闭数据库连接异常: {}", entry.getKey(), e);
+            }
+        }
+    }
+}

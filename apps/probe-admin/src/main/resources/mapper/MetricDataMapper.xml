@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lixin.probe.mapper.MetricDataMapper">
+
+    <!-- 结果映射 - ProbeMetricsSummary -->
+    <resultMap id="ProbeMetricsSummaryResultMap" type="com.lixin.probe.dto.ProbeMetricsSummary">
+        <!-- CPU指标 -->
+        <result column="cpu_usage" property="cpuUsage" />
+        <result column="cpu_cores" property="cpuCores" />
+        <result column="cpu_load_1min" property="cpuLoad1min" />
+        <result column="cpu_load_5min" property="cpuLoad5min" />
+        <result column="cpu_load_15min" property="cpuLoad15min" />
+
+        <!-- 内存指标 -->
+        <result column="memory_usage" property="memoryUsage" />
+        <result column="memory_total" property="memoryTotal" />
+        <result column="memory_available" property="memoryAvailable" />
+        <result column="memory_used" property="memoryUsed" />
+
+        <!-- 磁盘指标 -->
+        <result column="disk_usage" property="diskUsage" />
+        <result column="disk_used" property="diskUsed" />
+        <result column="disk_total" property="diskTotal" />
+
+        <!-- 网络指标 -->
+        <result column="network_rx_rate" property="networkRxRate" />
+        <result column="network_tx_rate" property="networkTxRate" />
+        <result column="network_rx_bytes" property="networkRxBytes" />
+        <result column="network_tx_bytes" property="networkTxBytes" />
+        <result column="network_rx_errors" property="networkRxErrors" />
+        <result column="network_tx_errors" property="networkTxErrors" />
+
+        <!-- JVM指标 -->
+        <result column="jvm_heap_usage" property="jvmHeapUsage" />
+        <result column="jvm_heap_max" property="jvmHeapMax" />
+        <result column="jvm_thread_count" property="jvmThreadCount" />
+        <result column="jvm_class_loaded" property="jvmClassLoaded" />
+
+        <!-- OS指标 -->
+        <result column="os_process_count" property="osProcessCount" />
+        <result column="os_thread_count" property="osThreadCount" />
+        <result column="os_uptime_seconds" property="osUptimeSeconds" />
+
+        <!-- 进程指标 -->
+        <result column="process_cpu_usage" property="processCpuUsage" />
+        <result column="process_memory_resident" property="processMemoryResident" />
+        <result column="process_jvm_uptime" property="processJvmUptime" />
+        <result column="process_id" property="processId" />
+
+        <result column="collect_time" property="collectTime" />
+    </resultMap>
+
+    <!-- 获取探针指标摘要 -->
+    <select id="getMetricsSummary" resultMap="ProbeMetricsSummaryResultMap">
+        SELECT
+            -- CPU指标
+            MAX(CASE WHEN metric_name = 'cpu.usage' THEN metric_value ELSE NULL END) AS cpu_usage,
+            MAX(CASE WHEN metric_name = 'cpu.cores' THEN metric_value ELSE NULL END) AS cpu_cores,
+            MAX(CASE WHEN metric_name = 'cpu.load.1min' THEN metric_value ELSE NULL END) AS cpu_load_1min,
+            MAX(CASE WHEN metric_name = 'cpu.load.5min' THEN metric_value ELSE NULL END) AS cpu_load_5min,
+            MAX(CASE WHEN metric_name = 'cpu.load.15min' THEN metric_value ELSE NULL END) AS cpu_load_15min,
+
+            -- 内存指标
+            MAX(CASE WHEN metric_name = 'memory.usage' THEN metric_value ELSE NULL END) AS memory_usage,
+            MAX(CASE WHEN metric_name = 'memory.total' THEN metric_value ELSE NULL END) AS memory_total,
+            MAX(CASE WHEN metric_name = 'memory.available' THEN metric_value ELSE NULL END) AS memory_available,
+            MAX(CASE WHEN metric_name = 'memory.used' THEN metric_value ELSE NULL END) AS memory_used,
+
+            -- 磁盘指标
+            MAX(CASE WHEN metric_name = 'disk.usage' THEN metric_value ELSE NULL END) AS disk_usage,
+            MAX(CASE WHEN metric_name = 'disk.used' THEN metric_value ELSE NULL END) AS disk_used,
+            MAX(CASE WHEN metric_name = 'disk.total' THEN metric_value ELSE NULL END) AS disk_total,
+
+            -- 网络指标
+            MAX(CASE WHEN metric_name = 'network.rx.rate' THEN metric_value ELSE NULL END) AS network_rx_rate,
+            MAX(CASE WHEN metric_name = 'network.tx.rate' THEN metric_value ELSE NULL END) AS network_tx_rate,
+            MAX(CASE WHEN metric_name = 'network.rx.bytes' THEN metric_value ELSE NULL END) AS network_rx_bytes,
+            MAX(CASE WHEN metric_name = 'network.tx.bytes' THEN metric_value ELSE NULL END) AS network_tx_bytes,
+            MAX(CASE WHEN metric_name = 'network.rx.errors' THEN metric_value ELSE NULL END) AS network_rx_errors,
+            MAX(CASE WHEN metric_name = 'network.tx.errors' THEN metric_value ELSE NULL END) AS network_tx_errors,
+
+            -- JVM指标
+            MAX(CASE WHEN metric_name = 'jvm.heap.usage' THEN metric_value ELSE NULL END) AS jvm_heap_usage,
+            MAX(CASE WHEN metric_name = 'jvm.heap.max' THEN metric_value ELSE NULL END) AS jvm_heap_max,
+            MAX(CASE WHEN metric_name = 'jvm.thread.count' THEN metric_value ELSE NULL END) AS jvm_thread_count,
+            MAX(CASE WHEN metric_name = 'jvm.class.loaded' THEN metric_value ELSE NULL END) AS jvm_class_loaded,
+
+            -- OS指标
+            MAX(CASE WHEN metric_name = 'os.process.count' THEN metric_value ELSE NULL END) AS os_process_count,
+            MAX(CASE WHEN metric_name = 'os.thread.count' THEN metric_value ELSE NULL END) AS os_thread_count,
+            MAX(CASE WHEN metric_name = 'os.uptime.seconds' THEN metric_value ELSE NULL END) AS os_uptime_seconds,
+
+            -- 进程指标
+            MAX(CASE WHEN metric_name = 'process.cpu.usage' THEN metric_value ELSE NULL END) AS process_cpu_usage,
+            MAX(CASE WHEN metric_name = 'process.memory.resident' THEN metric_value ELSE NULL END) AS process_memory_resident,
+            MAX(CASE WHEN metric_name = 'process.jvm.uptime' THEN metric_value ELSE NULL END) AS process_jvm_uptime,
+            MAX(CASE WHEN metric_name = 'process.id' THEN metric_value ELSE NULL END) AS process_id,
+
+            -- 采集时间
+            MAX(collect_time) AS collect_time
+
+        FROM metric_data
+        WHERE probe_id = #{probeId}
+          AND collect_time >= NOW() - INTERVAL '10 minutes'
+        GROUP BY probe_id
+        ORDER BY collect_time DESC
+        LIMIT 1
+    </select>
+
+</mapper>

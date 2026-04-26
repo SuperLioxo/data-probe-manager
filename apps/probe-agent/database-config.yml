@@ -1,0 +1,124 @@
+# 数据库连接配置文件
+# Agent启动时会自动加载此配置文件
+#
+# 配置说明：
+# - instanceId: 实例唯一标识符（必填）
+# - probeKey: 探针唯一标识符（必填，用于心跳上报和状态同步）
+#   ⭐ 重要：所有同类型数据库使用统一的probeKey
+#   - PostgreSQL: AGENT-postgresql
+#   - MySQL: AGENT-mysql
+#   - Oracle: AGENT-oracle
+# - databaseType: 数据库类型（必填）支持：mysql, postgresql, oracle, sqlserver, mongodb, redis
+# - host: 数据库主机地址（必填）
+# - port: 数据库端口（必填）
+# - databaseName: 数据库名称（必填）
+# - username: 连接用户名（必填）
+# - password: 连接密码（必填）
+# - schemas: 要监控的Schema列表（可选）
+# - enabled: 是否启用此实例（可选，默认true）
+# - description: 实例描述（可选）
+# - connectionTimeout: 连接超时时间，秒（可选，默认30）
+# - queryTimeout: 查询超时时间，秒（可选，默认60）
+
+databases:
+  # PostgreSQL本地数据库
+  - instanceId: "postgres-local"
+    probeKey: "AGENT-postgresql"  # ⭐ 统一probeKey（按数据库类型）
+    databaseType: "postgresql"
+    host: "localhost"
+    port: 5432
+    databaseName: "probe_db"
+    username: "probe_user"
+    password: "probe_pass"
+    schemas:
+      - "public"
+      - "test_schema"
+    enabled: true
+    description: "本地PostgreSQL开发数据库"
+    connectionTimeout: 30
+    queryTimeout: 60
+
+  # 测试数据库1 - 用户订单系统
+  - instanceId: "test-db-1"
+    probeKey: "AGENT-postgresql"  # ⭐ 统一probeKey
+    databaseType: "postgresql"
+    host: "localhost"
+    port: 5432
+    databaseName: "test_db_1"
+    username: "probe_user"
+    password: "probe_pass"
+    schemas:
+      - "public"
+    enabled: true
+    description: "测试数据库1 - 用户订单系统"
+    connectionTimeout: 30
+    queryTimeout: 60
+
+  # 测试数据库2 - 产品库存系统
+  - instanceId: "test-db-2"
+    probeKey: "AGENT-postgresql"  # ⭐ 统一probeKey
+    databaseType: "postgresql"
+    host: "localhost"
+    port: 5432
+    databaseName: "test_db_2"
+    username: "probe_user"
+    password: "probe_pass"
+    schemas:
+      - "public"
+    enabled: true
+    description: "测试数据库2 - 产品库存系统"
+    connectionTimeout: 30
+    queryTimeout: 60
+
+  # 测试数据库3 - 员工部门系统
+  - instanceId: "test-db-3"
+    probeKey: "AGENT-postgresql"  # ⭐ 统一probeKey
+    databaseType: "postgresql"
+    host: "localhost"
+    port: 5432
+    databaseName: "test_db_3"
+    username: "probe_user"
+    password: "probe_pass"
+    schemas:
+      - "public"
+    enabled: true
+    description: "测试数据库3 - 员工部门系统"
+    connectionTimeout: 30
+    queryTimeout: 60
+
+  # MySQL本地测试数据库
+  - instanceId: "mysql-local-01"
+    probeKey: "AGENT-mysql"
+    databaseType: "mysql"
+    host: "localhost"
+    port: 3306
+    databaseName: "test_db"
+    username: "root"
+    password: "root"
+    schemas:
+      - "test_db"
+    enabled: true
+    description: "本地MySQL测试数据库"
+    connectionTimeout: 30
+    queryTimeout: 60
+
+  # MySQL生产库
+  - instanceId: "mysql-production"
+    probeKey: "AGENT-mysql"
+    databaseType: "mysql"
+    host: "localhost"
+    port: 3306
+    databaseName: "production"
+    username: "root"
+    password: "root"
+    enabled: true
+    description: "MySQL生产库"
+    connectionTimeout: 30
+    queryTimeout: 60
+
+# 全局配置
+global:
+  max-connections: 10
+  collect-interval: 300  # 5分钟采集一次元数据
+  retry-count: 3
+  retry-delay: 5

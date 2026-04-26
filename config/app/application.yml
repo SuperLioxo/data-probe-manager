@@ -1,0 +1,150 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: probe-management-system
+
+  # 数据源配置
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:probe_db}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
+    druid:
+      initial-size: 10
+      min-idle: 10
+      max-active: 50
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+  # SQL初始化配置
+  sql:
+    init:
+      mode: never
+      encoding: UTF-8
+
+  # Redis配置
+  redis:
+    host: ${REDIS_HOST:}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: 0
+    timeout: 3000
+    lettuce:
+      pool:
+        max-active: 20
+        max-idle: 10
+        min-idle: 5
+
+# MyBatis Plus配置
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.lixin.probe.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# PageHelper配置
+pagehelper:
+  helper-dialect: postgresql
+  reasonable: true
+  support-methods-arguments: true
+
+# 日志配置
+logging:
+  level:
+    com.lixin.probe: debug
+    com.lixin.probe.mapper: debug
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+
+# UDP服务器配置
+udp:
+  server:
+    enabled: true
+    port: 9999
+    boss-threads: 1
+    worker-threads: 4
+
+# JWT配置
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: ${JWT_EXPIRATION:28800000}  # 默认8小时（28800000毫秒）
+
+# SpringDoc配置
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  show-actuator: false
+
+# CORS配置
+cors:
+  # 允许的域名，多个用逗号分隔。留空则只允许同源请求
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+  # 是否允许凭证（cookies）
+  allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
+  # 允许的HTTP方法
+  allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
+  # 允许的请求头
+  allowed-headers: ${CORS_ALLOWED_HEADERS:*}
+
+# 应用监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,heapdump,threaddump
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+
+# 探针服务装饰器配置
+probe:
+  decorator:
+    # 缓存装饰器
+    cache:
+      enabled: ${PROBE_DECORATOR_CACHE_ENABLED:true}
+    # 日志装饰器
+    logging:
+      enabled: ${PROBE_DECORATOR_LOGGING_ENABLED:true}
+    # 监控装饰器
+    monitoring:
+      enabled: ${PROBE_DECORATOR_MONITORING_ENABLED:true}

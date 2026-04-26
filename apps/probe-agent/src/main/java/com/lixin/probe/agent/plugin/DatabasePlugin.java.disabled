@@ -1,0 +1,108 @@
+package com.lixin.probe.agent.plugin;
+
+import com.lixin.probe.agent.pojo.request.ProbeRequest;
+import com.lixin.probe.agent.pojo.response.ProbeResponse;
+import com.lixin.probe.agent.result.CommonResult;
+
+import java.sql.Connection;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+/**
+ * 数据库插件接口
+ * 定义不同数据库类型的统一操作接口
+ */
+public interface DatabasePlugin {
+
+    /**
+     * 获取数据库类型
+     *
+     * @return 数据库类型（mysql, postgresql, oracle, sqlserver, dm, sqlite）
+     */
+    String getDbType();
+
+    /**
+     * 获取支持的数据库版本范围
+     *
+     * @return 版本范围（如 "8.0", "5.7,8.0", "11g,12c"）
+     */
+    String getVersionRange();
+
+    /**
+     * 构建数据库连接 URL
+     *
+     * @param params 连接参数（host, port, name等）
+     * @return JDBC 连接 URL
+     */
+    String buildUrl(Map<String, Object> params);
+
+    /**
+     * 获取数据库连接
+     *
+     * @param url      数据库 URL
+     * @param username 用户名
+     * @param password 密码
+     * @return 连接结果
+     */
+    CommonResult<Connection> getConnection(String url, String username, String password);
+
+    /**
+     * 查询数据库元数据
+     *
+     * @param connection 数据库连接
+     * @param config    配置参数
+     * @return 元数据结果
+     */
+    CompletableFuture<CommonResult<ProbeResponse.Metadata>> getMetadata(Connection connection, Map<String, Object> config);
+
+    /**
+     * 查询数据量统计
+     *
+     * @param connection 数据库连接
+     * @param config    配置参数
+     * @return 数据量统计结果
+     */
+    CompletableFuture<CommonResult<ProbeResponse.DataSize>> getDataSize(Connection connection, Map<String, Object> config);
+
+    /**
+     * 表名转义（处理不同数据库的关键字和特殊字符）
+     *
+     * @param fullTableName 完整表名（可能包含 schema）
+     * @return 转义后的表名
+     */
+    String escapeTableName(String fullTableName);
+
+    /**
+     * 获取行数查询 SQL
+     *
+     * @param isPrecise 是否精确统计
+     * @param params   查询参数
+     * @return SQL 语句
+     */
+    default String getCountSql(boolean isPrecise, Map<String, Object> params) {
+        if (isPrecise) {
+            return String.format("SELECT COUNT(*) FROM %s", escapeTableName((String) params.get("table")));
+        }
+        return String.format("SELECT TABLE_ROWS FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s'",
+                params.get("database"), params.get("table"));
+    }
+
+    /**
+     * 获取存储大小查询 SQL
+     *
+     * @param params 查询参数
+     * @return SQL 语句
+     */
+    String getStorageSql(Map<String, Object> params);
+
+    /**
+     * 获取索引大小查询 SQL
+     *
+     * @param params 查询参数
+     * @return SQL 语句
+     */
+    default String getIndexSql(Map<String, Object> params) {
+        // 默认实现：返回0（不支持索引大小查询的数据库）
+        return "SELECT 0 AS size";
+    }
+}

@@ -1,0 +1,50 @@
+# Spring Boot Actuator配置
+management:
+  endpoints:
+    web:
+      exposure:
+        # 暴露的端点：health, info, metrics, prometheus
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      # 显示详细健康信息
+      show-details: always
+      show-components: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+      sla:
+        http.server.requests: 100ms, 200ms, 500ms, 1s, 2s
+
+  # 健康检查配置
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+    diskspace:
+      enabled: true
+    ping:
+      enabled: true
+
+# Prometheus配置（如果需要pushgateway）
+# prometheus:
+#   pushgateway:
+#     enabled: true
+#     base-url: http://localhost:9091
+#     job: probe-management-system
+#     grouping-key:
+#       application: ${spring.application.name}

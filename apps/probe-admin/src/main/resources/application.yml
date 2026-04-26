@@ -1,0 +1,317 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: probe-management-system
+  main:
+    allow-bean-definition-overriding: true
+  config:
+    import:
+      - optional:file:../../.env[.properties]
+      - optional:file:../../config/security/application.properties
+      - optional:file:../../config/security/jwt.properties
+      - optional:file:../../config/security/encryption.properties
+
+  # 数据源配置 - 使用PostgreSQL数据库
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:probe_db}
+    username: ${DB_USERNAME:probe_user}
+    password: ${DB_PASSWORD:probe_pass}
+    druid:
+      # === 基础连接配置 ===
+      initial-size: 10              # 初始连接数（生产环境建议10-20）
+      min-idle: 10                  # 最小空闲连接数
+      max-active: 100               # 最大活跃连接数（生产环境建议100-200）
+      max-wait: 60000               # 获取连接最大等待时间（60秒）
+
+      # === 连接验证配置 ===
+      validation-query: SELECT 1    # 验证连接的SQL
+      validation-query-timeout: 3   # 验证查询超时时间（秒）
+      test-while-idle: true         # 空闲时测试连接
+      test-on-borrow: false         # 借出时不测试（性能考虑）
+      test-on-return: false         # 归还时不测试
+
+      # === 连接回收配置 ===
+      time-between-eviction-runs-millis: 60000     # 检查间隔（1分钟）
+      min-evictable-idle-time-millis: 300000       # 最小空闲时间（5分钟）
+      max-evictable-idle-time-millis: 900000       # 最大空闲时间（15分钟）
+
+      # === 性能监控配置 ===
+      filter:
+        stat:
+          enabled: true
+          log-slow-sql: true
+          slow-sql-millis: 1000     # 慢SQL阈值（1秒）
+        slf4j:
+          enabled: true
+          statement-log-enabled: false
+          statement-executable-sql-log-enable: true
+          statement-create-after-log-enabled: false
+          statement-close-after-log-enabled: false
+          result-set-log-enabled: false
+          result-set-open-after-log-enabled: false
+          result-set-close-after_log_enabled: false
+
+      # === Web监控配置 ===
+      web-stat-filter:
+        enabled: true
+        url-pattern: /*
+        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*"
+        session-stat-enable: true
+        session-stat-max-count: 1000
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+        reset-enable: false
+        login-username: ${DRUID_MONITOR_USERNAME:}
+        login-password: ${DRUID_MONITOR_PASSWORD:}
+
+      # === 连接池监控 ===
+      use-global-data-source-stat: true
+      remove-abandoned: true        # 开启连接泄漏检测
+      remove-abandoned-timeout: 1800  # 连接泄漏超时时间（30分钟）
+      log-abandoned: true           # 记录连接泄漏日志
+  # SQL初始化配置 - 自动执行SQL脚本
+  sql:
+    init:
+      mode: never
+      encoding: UTF-8
+
+  # Redis配置
+  redis:
+    host: localhost
+    port: 6380
+    password:
+    database: 0
+    timeout: 3000
+    lettuce:
+      pool:
+        max-active: 20
+        max-idle: 10
+        min-idle: 5
+
+# MyBatis Plus配置
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.lixin.probe.pojo,com.lixin.probe.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: isDeleted
+      logic-delete-value: true
+      logic-not-delete-value: false
+
+# PageHelper配置
+pagehelper:
+  helper-dialect: postgresql
+  reasonable: true
+  support-methods-arguments: true
+
+# 日志配置
+logging:
+  level:
+    com.lixin.probe: debug
+    com.lixin.probe.mapper: debug
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+
+# UDP服务器配置（开发环境禁用，避免端口冲突）
+udp:
+  server:
+    enabled: true
+    port: 9999
+    boss-threads: 1
+    worker-threads: 4
+
+# JWT配置
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: ${JWT_EXPIRATION:28800000}  # 默认8小时（28800000毫秒）
+
+# SpringDoc配置
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  show-actuator: false
+
+# CORS配置
+cors:
+  # 允许的域名，多个用逗号分隔。留空则只允许同源请求
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+  # 是否允许凭证（cookies）
+  allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
+  # 允许的HTTP方法
+  allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
+  # 允许的请求头
+  allowed-headers: ${CORS_ALLOWED_HEADERS:Authorization,Content-Type,X-Requested-With,Accept,Origin}
+
+# 应用监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,heapdump,threaddump
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+
+# WebSocket 安全配置
+websocket:
+  # 允许的 WebSocket Origin（逗号分隔）
+  allowed-origins: ${WS_ALLOWED_ORIGINS:ws://localhost:8080,ws://127.0.0.1:8080}
+  # 阻止未在白名单中的 Origin（开发环境设为false，允许Agent连接）
+  block-unlisted-origins: ${WS_BLOCK_UNLISTED:false}
+  # 启用 Origin 验证日志
+  enable-origin-logging: ${WS_ENABLE_ORIGIN_LOGGING:true}
+  # 严格 Origin 验证模式（开发环境设为false）
+  strict-origin-validation: ${WS_STRICT_VALIDATION:false}
+
+# 探针服务装饰器配置
+probe:
+  # UDP自动发现配置（开发环境禁用，避免重复创建探针）
+  discovery:
+    enabled: false
+    port: 9090
+    threads: 2
+    # 安全配置
+    allowed-ips: "127.0.0.1,::1,localhost"  # 允许的IP地址，逗号分隔
+    max-probes-per-agent: 10  # 每个Agent最多创建的探针数量
+  decorator:
+    # 缓存装饰器
+    cache:
+      enabled: ${PROBE_DECORATOR_CACHE_ENABLED:true}
+    # 日志装饰器
+    logging:
+      enabled: ${PROBE_DECORATOR_LOGGING_ENABLED:true}
+    # 监控装饰器
+    monitoring:
+      enabled: ${PROBE_DECORATOR_MONITORING_ENABLED:true}
+  # 加密配置
+  encryption:
+    key: ${PROBE_ENCRYPTION_KEY:dpm-probe-encryption-key-2024}
+
+# InfluxDB时序数据库配置
+influx:
+  # InfluxDB服务器URL
+  url: ${INFLUX_URL:http://localhost:8086}
+  # 认证令牌（在InfluxDB UI中生成）
+  token: ${INFLUX_TOKEN:}
+  # 组织名称
+  org: ${INFLUX_ORG:probe-org}
+  # 存储桶名称
+  bucket: ${INFLUX_BUCKET:probe-metrics}
+  # 是否启用InfluxDB（默认禁用，需要时手动启用）
+  enabled: ${INFLUX_ENABLED:false}
+  # 写入选项配置
+  write-options:
+    # 批量写入大小（条数）
+    batch-size: ${INFLUX_BATCH_SIZE:1000}
+    # 刷新间隔（毫秒）
+    flush-interval: ${INFLUX_FLUSH_INTERVAL:1000}
+    # 抖动间隔（毫秒），避免写入风暴
+    jitter-interval: ${INFLUX_JITTER_INTERVAL:0}
+    # 缓冲区限制（条数）
+    buffer-limit: ${INFLUX_BUFFER_LIMIT:10000}
+  # 重试选项配置
+  retry-options:
+    # 最大重试次数
+    max-retries: ${INFLUX_MAX_RETRIES:3}
+    # 初始重试间隔（毫秒）
+    initial-interval: ${INFLUX_INITIAL_INTERVAL:1000}
+    # 最大重试间隔（毫秒）
+    max-interval: ${INFLUX_MAX_INTERVAL:10000}
+    # 间隔乘数（指数退避）
+    multiplier: ${INFLUX_MULTIPLIER:2.0}
+  # 数据清理配置
+  cleanup:
+    # 是否启用自动数据清理
+    enabled: ${INFLUX_CLEANUP_ENABLED:false}
+    # 数据保留天数（默认90天）
+    retention-days: ${INFLUX_RETENTION_DAYS:90}
+    # 清理任务执行时间（Cron表达式，默认每天凌晨2点）
+    cron: ${INFLUX_CLEANUP_CRON:0 0 2 * * ?}
+
+# 审计日志配置
+audit-log:
+  # 是否启用审计日志
+  enabled: ${AUDIT_LOG_ENABLED:true}
+  # 是否异步记录日志
+  async: ${AUDIT_LOG_ASYNC:true}
+  # 日志保留天数
+  retention-days: ${AUDIT_LOG_RETENTION_DAYS:90}
+  # 是否启用自动清理
+  auto-cleanup-enabled: ${AUDIT_LOG_AUTO_CLEANUP:false}
+  # 自动清理执行时间（Cron表达式）
+  cleanup-cron: ${AUDIT_LOG_CLEANUP_CRON:0 0 2 * * ?}
+  # 是否启用日志归档
+  archive-enabled: ${AUDIT_LOG_ARCHIVE_ENABLED:false}
+  # 归档执行时间（Cron表达式）
+  archive-cron: ${AUDIT_LOG_ARCHIVE_CRON:0 0 3 * * ?}
+  # 归档前天数
+  archive-before-days: ${AUDIT_LOG_ARCHIVE_BEFORE_DAYS:30}
+  # 归档文件存储路径
+  archive-path: ${AUDIT_LOG_ARCHIVE_PATH:/var/log/probe/audit-archive}
+  # 是否压缩归档文件
+  compress-archive: ${AUDIT_LOG_COMPRESS_ARCHIVE:true}
+  # 最大归档文件大小（MB）
+  max-archive-file-size: ${AUDIT_LOG_MAX_ARCHIVE_SIZE:100}
+  # 敏感参数名称（不记录这些参数的值）
+  sensitive-params:
+    - password
+    - pwd
+    - secret
+    - token
+    - key
+  # 最大请求参数长度
+  max-param-length: ${AUDIT_LOG_MAX_PARAM_LENGTH:2000}
+  # 是否记录查询操作
+  log-query-operations: ${AUDIT_LOG_LOG_QUERY:false}
+  # 是否记录成功操作
+  log-success-operations: ${AUDIT_LOG_LOG_SUCCESS:true}
+  # 是否记录失败操作
+  log-failed-operations: ${AUDIT_LOG_LOG_FAILED:true}
+
+# 文件存储配置
+file:
+  storage:
+    type: ${FILE_STORAGE_TYPE:local}
+    upload-dir: ${FILE_UPLOAD_DIR:./uploads}
+    minio:
+      endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+      access-key: ${MINIO_ACCESS_KEY:minioadmin}
+      secret-key: ${MINIO_SECRET_KEY:minioadmin}
+      bucket: ${MINIO_BUCKET:probe-files}
+      presigned-expiry: ${MINIO_PRESIGNED_EXPIRY:3600}

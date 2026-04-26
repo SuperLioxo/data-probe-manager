@@ -1,0 +1,118 @@
+# 探针代理配置文件
+
+probe:
+  agent:
+    # 探针编码（使用第一个code作为主code）
+    code: "AGENT"
+
+    # Agent认证密钥（用于Agent与Admin服务之间的身份验证）
+    # 注意: 这与probeKey不同，probeKey用于标识具体的探针实例
+    key: ${PROBE_KEY:agent-secret-key-2024}
+
+    # Agent自身配置
+    agent:
+      port: 58081  # Agent HTTP服务端口
+
+    # 服务端配置
+    server:
+      host: "localhost"
+      port: 8081
+      udp-port: 9999          # UDP上报端口（用于监控数据）
+      discovery-port: 9090    # UDP发现端口（用于Agent自动注册）
+      ws-meta-url: "ws://localhost:8081/ws/meta"
+      ws-file-url: "ws://localhost:8081/ws/file"
+
+    # 模块配置
+    modules:
+      # 系统监控模块
+      system:
+        enabled: true
+        collect-interval: 10000  # 10秒
+        batch-size: 50
+        # 注意: probeKey由Admin动态生成，Agent通过探针同步接口获取
+        # 不要设置固定的probeKey，它会在运行时从Admin服务同步
+
+      # 数据库模块
+      database:
+        enabled: true
+        # 注意: probeKey由Admin动态生成，Agent通过探针同步接口获取
+        # 数据库配置文件: database-config.yml
+        config-file: "database-config.yml"
+        connect-pool-size: 10
+        connect-timeout: 30
+        query-timeout: 60
+
+      # 文件模块
+      file:
+        enabled: true
+        # 注意: probeKey由Admin动态生成，Agent通过探针同步接口获取
+        scan-paths:
+          - "/home/ovo/Workspace/data-probe-manager/tests"
+        file-extensions:              # 支持所有文件类型
+          - "*"
+          - ".png"
+          - ".zip"
+        recursive: true
+        max-depth: 10                 # 最大扫描深度
+        min-file-size: 0              # 最小文件大小
+        max-file-size: 104857600      # 最大文件大小 100MB
+        calculate-md5: false
+        include-hidden: false
+
+    # 启动配置
+    startup:
+      execute-immediately: true   # 临时启用启动时自动执行扫描
+      exit-after-execution: false
+      auto-register: false  # 开发环境禁用自动注册，避免重复创建探针
+      register-retry-times: 3
+      register-retry-interval: 5000
+
+  # MinIO 配置
+  minio:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    public-url: ${MINIO_PUBLIC_URL:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY}  # ⚠️ REQUIRED: 生产环境必须设置
+    secret-key: ${MINIO_SECRET_KEY}  # ⚠️ REQUIRED: 生产环境必须设置
+    bucket-name: probe-data
+    presigned:
+      get-expiry-minutes: 10
+      put-expiry-minutes: 30
+
+# Spring Boot 配置
+spring:
+  application:
+    name: probe-agent
+  profiles:
+    active: dev  # 使用dev profile而非test
+  # 启用Web应用（支持REST API）
+  main:
+    web-application-type: servlet
+  # 禁用MongoDB自动配置（该模块未启用，避免启动失败）
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+
+  # 日志配置
+  logging:
+    level:
+      root: INFO
+      com.lixin.probe.agent: DEBUG
+      io.netty: INFO
+      oshi: INFO
+    pattern:
+      console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file:
+      name: ./logs/probe-agent.log
+      max-size: 100MB
+      max-history: 30
+      total-size-cap: 1GB
+
+# Server 配置（REST API 端口）
+server:
+  port: 58081
+  compression:
+    enabled: true
+  tomcat:
+    max-threads: 200
+    max-connections: 8192

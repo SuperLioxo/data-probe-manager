@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lixin.probe.mapper.FileProbeMapper">
+
+    <resultMap id="BaseResultMap" type="com.lixin.probe.entity.FileProbe">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="probe_key" property="probeKey" jdbcType="VARCHAR"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="type" property="type" jdbcType="VARCHAR"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="host_ip" property="hostIp" jdbcType="VARCHAR"/>
+        <result column="port" property="port" jdbcType="INTEGER"/>
+        <result column="version" property="version" jdbcType="VARCHAR"/>
+        <result column="scan_path" property="scanPath" jdbcType="VARCHAR"/>
+        <result column="file_extensions" property="fileExtensions" jdbcType="VARCHAR"/>
+        <result column="ignore_paths" property="ignorePaths" jdbcType="VARCHAR"/>
+        <result column="scan_interval" property="scanInterval" jdbcType="INTEGER"/>
+        <result column="max_depth" property="maxDepth" jdbcType="INTEGER"/>
+        <result column="total_file_count" property="totalFileCount" jdbcType="BIGINT"/>
+        <result column="total_directory_count" property="totalDirectoryCount" jdbcType="BIGINT"/>
+        <result column="total_size" property="totalSize" jdbcType="BIGINT"/>
+        <result column="last_scan_time" property="lastScanTime" jdbcType="TIMESTAMP"/>
+        <result column="last_heartbeat" property="lastHeartbeat" jdbcType="TIMESTAMP"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, probe_key, name, "type", status, host_ip, port, "version", scan_path, file_extensions,
+        ignore_paths, scan_interval, max_depth, total_file_count, total_directory_count,
+        total_size, last_scan_time, last_heartbeat, create_time, update_time
+    </sql>
+
+</mapper>

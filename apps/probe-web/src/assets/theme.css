@@ -1,0 +1,904 @@
+/* ===================================
+   现代化设计系统 - 数据探针管理系统
+   参考: Linear, Vercel, Notion
+   蓝色主题 - 专注数据分析与可视化
+   优化版本 v2.0 - 增强无障碍和响应式
+   =================================== */
+
+/* 导入字体 - Fira Code (标题) 和 Fira Sans (正文) */
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+
+/* 全局主题变量 - 浅色模式 */
+:root {
+  /* ========== 主色系统 - 蓝色数据可视化主题 ========== */
+  --primary-50: #EFF6FF;
+  --primary-100: #DBEAFE;
+  --primary-200: #BFDBFE;
+  --primary-300: #93C5FD;
+  --primary-400: #60A5FA;
+  --primary-500: #3B82F6;  /* 新主色 - 专业蓝色 */
+  --primary-600: #2563EB;
+  --primary-700: #1D4ED8;
+  --primary-800: #1E40AF;  /* 深蓝 - 主要强调色 */
+  --primary-900: #1E3A8A;
+
+  /* 主色渐变 */
+  --gradient-primary: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #2563EB 0%, #1E3A8A 100%);
+  --gradient-primary-subtle: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(30, 64, 175, 0.05) 100%);
+  --gradient-primary-overlay: linear-gradient(180deg, rgba(59, 130, 246, 0.03) 0%, transparent 100%);
+
+  /* 兼容旧代码 */
+  --primary: #3B82F6;
+  --primary-hover: #2563EB;
+  --primary-light: rgba(59, 130, 246, 0.1);
+
+  /* ========== 辅助色 ========== */
+  --accent-blue: #3B82F6;
+  --accent-cyan: #06B6D4;
+  --accent-amber: #F59E0B;  /* CTA/警告强调色 */
+  --accent-indigo: #6366F1;
+
+  /* 渐变组合 */
+  --gradient-accent: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
+  --gradient-warm: linear-gradient(135deg, #3B82F6 0%, #F59E0B 100%);
+  --gradient-cool: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
+
+  /* ========== 语义色系统 ========== */
+  /* 成功色 */
+  --success-50: #ECFDF5;
+  --success-100: #D1FAE5;
+  --success-500: #10B981;
+  --success-600: #059669;
+  --success-700: #047857;
+  --gradient-success: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  --success: #10B981;
+
+  /* 警告色 */
+  --warning-50: #FFFBEB;
+  --warning-100: #FEF3C7;
+  --warning-500: #F59E0B;
+  --warning-600: #D97706;
+  --warning-700: #B45309;
+  --gradient-warning: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  --warning: #F59E0B;
+
+  /* 错误色 */
+  --error-50: #FEF2F2;
+  --error-100: #FEE2E2;
+  --error-500: #EF4444;
+  --error-600: #DC2626;
+  --error-700: #B91C1C;
+  --gradient-error: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  --error: #EF4444;
+
+  /* 信息色 */
+  --info-50: #EFF6FF;
+  --info-100: #DBEAFE;
+  --info-500: #3B82F6;
+  --info-600: #2563EB;
+  --info-700: #1D4ED8;
+  --gradient-info: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  --info: #3B82F6;
+
+  /* ========== 探针状态颜色 ========== */
+  --status-online: #10B981;      /* 在线 - 绿色 */
+  --status-offline: #94A3B8;     /* 离线 - 灰色 */
+  --status-error: #EF4444;       /* 异常 - 红色 */
+  --status-warning: #F59E0B;     /* 警告 - 橙色 */
+
+  /* ========== 探针类型颜色 ========== */
+  --probe-system: #3B82F6;       /* 系统监控 - 蓝色 */
+  --probe-file: #EF4444;         /* 文件监控 - 红色 */
+  --probe-database: #10B981;     /* 数据库 - 绿色 */
+  --probe-network: #F59E0B;      /* 网络监控 - 橙色 */
+  --probe-application: #8B5CF6;  /* 应用监控 - 紫色 */
+
+  /* ========== 背景色系统 ========== */
+  --bg-primary: #F8FAFC;  /* slate-50 - 清爽的浅色背景 */
+  --bg-secondary: #F1F5F9;  /* slate-100 - 次级背景 */
+  --bg-tertiary: #E2E8F0;  /* slate-200 - 第三级背景 */
+  --bg-card: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-hover: #F1F5F9;
+  --bg-active: #E2E8F0;
+
+  /* 渐变背景 */
+  --gradient-card: linear-gradient(135deg, #F1F5F9 0%, #ffffff 100%);
+  --gradient-header: linear-gradient(135deg, #ffffff 0%, #F8FAFC 100%);
+
+  /* ========== 文字色系统 - 确保对比度 ≥ 4.5:1 ========== */
+  --text-primary: #0F172A;  /* slate-900 - 深色，高对比度 */
+  --text-secondary: #475569;  /* slate-600 - 中等对比度 */
+  --text-tertiary: #94A3B8;  /* slate-400 - 辅助文本 */
+  --text-disabled: #CBD5E1;  /* slate-300 - 禁用状态 */
+  --text-inverse: #ffffff;
+
+  /* ========== 边框色系统 ========== */
+  --border-color: #e0e0e0;
+  --border-color-light: rgba(0, 0, 0, 0.06);
+  --border-color-medium: rgba(0, 0, 0, 0.1);
+  --border-color-dark: rgba(0, 0, 0, 0.15);
+  --border-hover: #d0d0d0;
+  --border-focus: #8B5CF6;
+
+  /* ========== 输入框 ========== */
+  --input-bg: #ffffff;
+  --input-bg-hover: #fafafa;
+  --input-border: #e0e0e0;
+
+  /* ========== 阴影系统 ========== */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+
+  /* 彩色阴影 - 用于强调 */
+  --shadow-primary: 0 10px 30px -10px rgba(139, 92, 246, 0.3);
+  --shadow-success: 0 10px 30px -10px rgba(16, 185, 129, 0.3);
+  --shadow-error: 0 10px 30px -10px rgba(239, 68, 68, 0.3);
+
+  /* 内阴影 - 用于输入框聚焦 */
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03);
+  --shadow-inner-focus: inset 0 2px 4px 0 rgba(139, 92, 246, 0.1);
+
+  /* 卡片阴影 */
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.08);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  /* ========== 圆角系统 ========== */
+  --border-radius-sm: 6px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+  --border-radius-full: 9999px;
+
+  /* ========== 间距系统 (基于 4px 单位) ========== */
+  --spacing-0: 0;
+  --spacing-1: 0.25rem;  /* 4px */
+  --spacing-2: 0.5rem;   /* 8px */
+  --spacing-3: 0.75rem;  /* 12px */
+  --spacing-4: 1rem;     /* 16px */
+  --spacing-5: 1.25rem;  /* 20px */
+  --spacing-6: 1.5rem;   /* 24px */
+  --spacing-8: 2rem;     /* 32px */
+  --spacing-10: 2.5rem;  /* 40px */
+  --spacing-12: 3rem;    /* 48px */
+  --spacing-16: 4rem;    /* 64px */
+  --spacing-20: 5rem;    /* 80px */
+  --spacing-24: 6rem;    /* 96px */
+
+  /* ========== 字号系统 (基于 1.125 比例) ========== */
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.875rem;   /* 14px */
+  --text-base: 1rem;     /* 16px */
+  --text-lg: 1.125rem;   /* 18px */
+  --text-xl: 1.25rem;    /* 20px */
+  --text-2xl: 1.5rem;    /* 24px */
+  --text-3xl: 1.875rem;  /* 30px */
+  --text-4xl: 2.25rem;   /* 36px */
+
+  /* ========== Z-Index Scale (防止堆叠冲突) ========== */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+  /* 应用层级 */
+  --z-sidebar: 20;
+  --z-header: 10;
+  --z-toast: 60;
+
+  /* ========== 字体系统 - Fira Code/Sans ========== */
+  --font-sans: 'Fira Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --font-mono: 'Fira Code', 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+  --font-heading: 'Fira Code', monospace;
+  --font-body: 'Fira Sans', sans-serif;
+  --font-zh: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'WenQuanYi Micro Hei', sans-serif;
+
+  /* 字重 */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* 行高 */
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  /* ========== 动画系统 ========== */
+  /* 缓动函数 */
+  --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 动画时长 */
+  --duration-instant: 100ms;
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 500ms;
+
+  /* 过渡效果 */
+  --transition-base: all var(--duration-normal) var(--ease-smooth);
+  --transition-transform: transform var(--duration-normal) var(--ease-smooth);
+  --transition-opacity: opacity var(--duration-fast) var(--ease-smooth);
+  --transition-colors: color var(--duration-fast) var(--ease-smooth), background-color var(--duration-fast) var(--ease-smooth);
+  --transition-button: all var(--duration-fast) var(--ease-smooth);
+  --transition-input: border-color var(--duration-fast) var(--ease-smooth), box-shadow var(--duration-fast) var(--ease-smooth);
+
+  /* ========== Element Plus 组件色 - 蓝色主题 ========== */
+  --el-color-primary: #3B82F6;
+  --el-color-primary-light-3: #93C5FD;
+  --el-color-primary-light-5: #DBEAFE;
+  --el-color-primary-light-7: #EFF6FF;
+  --el-color-primary-light-8: #EFF6FF;
+  --el-color-primary-light-9: #F0F9FF;
+  --el-color-primary-dark-2: #2563EB;
+  --el-color-success: #10B981;
+  --el-color-warning: #F59E0B;
+  --el-color-danger: #EF4444;
+  --el-color-error: #EF4444;
+  --el-color-info: #3B82F6;
+
+  /* ========== 探针类型色 ========== */
+  --probe-type-system: #409eff;
+  --probe-type-application: #67c23a;
+  --probe-type-network: #e6a23c;
+  --probe-type-custom: #909399;
+  --probe-type-file: #f56c6c;
+  --probe-type-database: #409eff;
+}
+
+/* ===================================
+   已移除深色模式 - 仅使用浅色主题
+   =================================== */
+
+/* ===================================
+   全局样式 - 防止双滚动条
+   =================================== */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
+}
+
+/* 应用字体 */
+body {
+  font-family: var(--font-sans), var(--font-zh), sans-serif;
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 代码字体 */
+code, pre, .font-mono {
+  font-family: var(--font-mono), monospace;
+}
+
+/* ===================================
+   Glassmorphism 实用类
+   =================================== */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.glass-header {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* 已移除深色模式 glass-header 样式 - 仅使用浅色主题 */
+
+/* ===================================
+   Accessibility - 无障碍功能
+   =================================== */
+
+/* 焦点状态 - 清晰可见 */
+:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+/* 移除默认焦点，保留焦点可见性样式 */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* 减少动画 - 尊重用户偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 可点击元素 - 明确指示 */
+.clickable,
+[role="button"],
+button,
+a {
+  cursor: pointer;
+}
+
+/* 卡片悬停效果 */
+.hover-card {
+  transition: var(--transition-colors);
+  cursor: pointer;
+}
+
+.hover-card:hover {
+  background-color: var(--bg-hover);
+  box-shadow: var(--shadow-md);
+}
+
+/* ===================================
+   交互反馈增强 - 浅色模式优化
+   =================================== */
+
+/* 按钮交互优化 - 统一 transition 和 hover 效果 */
+.el-button {
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.el-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.el-button:active {
+  transform: translateY(0);
+}
+
+.el-button:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+/* 主要按钮特殊处理 */
+.el-button--primary:hover {
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* 卡片悬停效果 */
+.el-card {
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.el-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.hover-card {
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.hover-card:hover {
+  background-color: var(--bg-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* 链接悬停 */
+a {
+  transition: opacity 150ms ease;
+}
+
+a:hover {
+  opacity: 0.8;
+}
+
+/* 表格行悬停 */
+.el-table__row {
+  transition: background-color 150ms ease;
+}
+
+.el-table__row:hover {
+  cursor: pointer;
+  background-color: var(--bg-hover) !important;
+}
+
+/* 表格单元格交互 */
+.el-table__cell {
+  transition: all 150ms ease;
+}
+
+/* 输入框焦点状态优化 */
+.el-input__wrapper {
+  transition: all 150ms ease;
+}
+
+.el-input__wrapper.is-focus {
+  border-color: var(--primary-500) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* 选择器焦点状态 */
+.el-select .el-input.is-focus .el-input__wrapper {
+  border-color: var(--primary-500) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* 标签页交互优化 */
+.el-tabs__item {
+  transition: all 150ms ease;
+}
+
+.el-tabs__item:hover {
+  color: var(--primary-500);
+}
+
+/* 菜单项交互优化 */
+.el-menu-item {
+  transition: all 150ms ease;
+}
+
+.el-menu-item:hover {
+  transform: translateX(2px);
+}
+
+/* 图标按钮交互 */
+.el-button.is-icon-only {
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.el-button.is-icon-only:hover {
+  transform: scale(1.05);
+  background-color: var(--bg-hover);
+}
+
+/* 下拉菜单项交互 */
+.el-dropdown-menu__item {
+  transition: all 150ms ease;
+}
+
+.el-dropdown-menu__item:hover {
+  background-color: var(--bg-hover);
+  transform: translateX(2px);
+}
+
+/* 开关组件交互 */
+.el-switch {
+  transition: all 200ms ease;
+}
+
+/* 单选和复选框交互 */
+.el-radio__input:hover .el-radio__inner,
+.el-checkbox__input:hover .el-checkbox__inner {
+  border-color: var(--primary-500);
+}
+
+/* 徽标动画 */
+.el-badge__content {
+  transition: all 150ms ease;
+}
+
+/* 头像交互 */
+.el-avatar {
+  transition: all 150ms ease;
+}
+
+.el-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===================================
+   加载状态
+   =================================== */
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+/* 已移除深色模式 skeleton 样式 - 仅使用浅色主题 */
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ===================================
+   响应式工具类
+   =================================== */
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .responsive-hide-mobile {
+    display: none !important;
+  }
+
+  .responsive-full-mobile {
+    width: 100% !important;
+  }
+}
+
+/* 触摸目标最小尺寸 (44x44px) */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===================================
+   增强无障碍样式 (v2.0 新增)
+   =================================== */
+
+/* 跳过导航链接 - 键盘导航优化 */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--primary-500);
+  color: white;
+  padding: 8px 16px;
+  z-index: 9999;
+  transition: top 0.3s;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* 改进的焦点状态 - 更清晰可见 */
+:focus-visible {
+  outline: 2px solid var(--primary-500) !important;
+  outline-offset: 2px !important;
+  border-radius: 2px;
+}
+
+/* 仅在键盘导航时显示焦点 */
+:focus:not(:focus-visible) {
+  outline: none !important;
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: #000000;
+    --text-primary: #000000;
+    --text-secondary: #1a1a1a;
+  }
+
+  .el-card {
+    border-width: 2px;
+  }
+}
+
+/* 屏幕阅读器专用内容 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ===================================
+   性能优化样式 (v2.0 新增)
+   =================================== */
+
+/* 优化滚动性能 */
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smooth-scroll {
+    scroll-behavior: auto;
+  }
+}
+
+/* GPU 加速 */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* 优化阴影渲染 - 减少重绘 */
+.optimized-shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease;
+}
+
+.optimized-shadow:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+}
+
+/* ===================================
+   响应式增强 (v2.0 新增)
+   =================================== */
+
+/* 超小屏幕 (手机竖屏) */
+@media (max-width: 375px) {
+  :root {
+    --text-base: 14px;
+  }
+
+  .responsive-hide-xs {
+    display: none !important;
+  }
+}
+
+/* 小屏幕 (手机横屏) */
+@media (min-width: 376px) and (max-width: 576px) {
+  .responsive-hide-sm {
+    display: none !important;
+  }
+}
+
+/* 中等屏幕 (平板) */
+@media (min-width: 577px) and (max-width: 768px) {
+  .responsive-hide-md {
+    display: none !important;
+  }
+}
+
+/* 大屏幕 (桌面) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .responsive-hide-lg {
+    display: none !important;
+  }
+}
+
+/* 超大屏幕 */
+@media (min-width: 1025px) {
+  .responsive-hide-xl {
+    display: none !important;
+  }
+}
+
+/* ===================================
+   交互反馈增强 (v2.0 新增)
+   =================================== */
+
+/* 触摸反馈 */
+.touch-feedback {
+  position: relative;
+  overflow: hidden;
+}
+
+.touch-feedback::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s;
+}
+
+.touch-feedback:active::after {
+  width: 200px;
+  height: 200px;
+}
+
+/* 加载状态优化 */
+.loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-hover) 0%,
+    var(--bg-tertiary) 50%,
+    var(--bg-hover) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ===================================
+   工具类 (v2.0 新增)
+   =================================== */
+
+/* 间距工具类 */
+.p-0 { padding: 0; }
+.p-1 { padding: var(--spacing-1); }
+.p-2 { padding: var(--spacing-2); }
+.p-3 { padding: var(--spacing-3); }
+.p-4 { padding: var(--spacing-4); }
+.p-5 { padding: var(--spacing-5); }
+.p-6 { padding: var(--spacing-6); }
+
+.m-0 { margin: 0; }
+.m-1 { margin: var(--spacing-1); }
+.m-2 { margin: var(--spacing-2); }
+.m-3 { margin: var(--spacing-3); }
+.m-4 { margin: var(--spacing-4); }
+.m-5 { margin: var(--spacing-5); }
+.m-6 { margin: var(--spacing-6); }
+
+/* 文本工具类 */
+.text-left { text-align: left; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+
+/* 显示工具类 */
+.block { display: block; }
+.inline-block { display: inline-block; }
+.flex { display: flex; }
+.inline-flex { display: inline-flex; }
+.grid { display: grid; }
+.hidden { display: none; }
+
+/* Flex 工具类 */
+.flex-row { flex-direction: row; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.items-end { align-items: flex-end; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-start { justify-content: flex-start; }
+.justify-end { justify-content: flex-end; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-1 { flex: 1; }
+
+/* 溢出工具类 */
+.overflow-hidden { overflow: hidden; }
+.overflow-auto { overflow: auto; }
+.overflow-scroll { overflow: scroll; }
+
+/* 定位工具类 */
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed { position: fixed; }
+.sticky { position: sticky; }
+
+/* 尺寸工具类 */
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.min-h-screen { min-height: 100vh; }
+
+/* 边框工具类 */
+.border { border: 1px solid var(--border-color); }
+.border-0 { border: none; }
+.rounded { border-radius: var(--border-radius-md); }
+.rounded-lg { border-radius: var(--border-radius-lg); }
+.rounded-full { border-radius: var(--border-radius-full); }
+
+/* 阴影工具类 */
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+
+/* 过渡工具类 */
+.transition-all { transition: all 0.2s ease; }
+.transition-transform { transition: transform 0.2s ease; }
+.transition-opacity { transition: opacity 0.2s ease; }
+
+/* ===================================
+   Element Plus 组件优化 (v2.0 新增)
+   =================================== */
+
+/* 优化按钮组触摸目标 */
+.el-button-group .el-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* 优化表格移动端体验 */
+@media (max-width: 768px) {
+  .el-table {
+    font-size: 13px;
+  }
+
+  .el-table .el-table__cell {
+    padding: 8px 4px;
+  }
+
+  .el-table .el-table__header th {
+    padding: 8px 4px;
+  }
+
+  /* 表格横向滚动提示 */
+  .el-table--scrollable .el-table__body-wrapper {
+    position: relative;
+  }
+
+  .el-table--scrollable .el-table__body-wrapper::after {
+    content: '← 滑动查看更多 →';
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 4px 8px;
+    border-radius: 4px;
+    pointer-events: none;
+  }
+}
+
+/* 优化卡片触摸体验 */
+.el-card {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 优化输入框体验 */
+.el-input__wrapper,
+.el-textarea__inner {
+  min-height: 44px;
+}
+
+.el-input__inner {
+  min-height: 32px;
+}
+
+/* ===================================
+   打印样式 (v2.0 新增)
+   =================================== */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .el-aside,
+  .el-header,
+  .el-pagination {
+    display: none !important;
+  }
+
+  .el-card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+    page-break-inside: avoid;
+  }
+
+  .el-table {
+    page-break-inside: avoid;
+  }
+}

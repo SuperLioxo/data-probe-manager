@@ -1,0 +1,8 @@
+apiVersion: v2
+name: probe-manager
+description: Data Probe Management System - distributed data probe management platform
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: probe-team

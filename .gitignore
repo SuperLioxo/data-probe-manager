@@ -1,0 +1,63 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+.cursor/
+.metadata/
+.recommenders/
+
+# 日志
+logs/
+*.log
+runtime/logs/
+
+# 运行时数据
+data/
+temp/
+runtime/
+runtime/cache/
+.cache/
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~
+
+# 构建产物
+target/
+dist/
+**/target/
+*.class
+*.jar
+*.war
+node_modules/
+
+# 环境变量与密钥文件
+.env
+.env.*
+!.env.example
+configs/application/application-local.yml
+config/security/jwt.properties
+config/security/encryption.properties
+**/application-local.yml
+
+# 数据库
+*.db
+*.sqlite
+browse.vc.db
+
+# 数据库驱动（JAR文件）
+drivers/**/*.jar
+database/drivers/**/*.jar
+lib/**/*.jar
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 归档目录
+.archive/

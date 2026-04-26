@@ -1,0 +1,2 @@
+com.lixin.probe.agent.plugin.impl.database.BinlogCDCPlugin
+com.lixin.probe.agent.plugin.impl.database.PostgreSQLCDCPlugin
