@@ -6,8 +6,11 @@
 .metadata/
 .recommenders/
 
-# 文档
-/docs
+# Claude Code
+.claude/
+
+# 文档（含毕设论文，不公开）
+docs/
 
 # 日志
 logs/
@@ -26,6 +29,8 @@ runtime/cache/
 *.bak
 *.swp
 *~
+*.orig
+*.rej
 
 # 构建产物
 target/
@@ -35,6 +40,10 @@ dist/
 *.jar
 *.war
 node_modules/
+
+# Python 缓存
+__pycache__/
+*.pyc
 
 # 环境变量与密钥文件
 .env
