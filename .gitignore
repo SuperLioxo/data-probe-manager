@@ -8,6 +8,7 @@
 
 # Claude Code
 .claude/
+.github/prompts/
 
 # 文档（含毕设论文，不公开）
 docs/
