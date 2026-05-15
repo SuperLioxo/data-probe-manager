@@ -32,6 +32,7 @@
 | **数据自动同步** | 实时同步（CDC 触发）与定时同步（Cron 调度），同步前自动质量过滤 |
 | **文件上传** | 结构化文件解析入汇聚库，普通文件存 MinIO/本地 |
 | **状态监测** | 探针心跳检测、数据源连通性监控，异常告警，支持多渠道通知 |
+| **系统设置** | 持久化系统配置（通用、外观、通知、数据采集等 32 项），支持导入/导出/重置 |
 | **多数据源适配** | 插件化架构，支持 MySQL、PostgreSQL、Oracle、SQL Server、SQLite、达梦、MongoDB、Redis、ES 等 |
 
 ---
@@ -129,7 +130,7 @@ Docker Compose 包含完整的 6 个服务：PostgreSQL、MySQL（测试库）�
 | Admin Health | http://localhost:8081/actuator/health |
 | Agent Health | http://localhost:58081/api/health |
 
-默认账号：**admin / admin123**
+默认账号：**admin / admin123**（管理员），普通用户：**user / 123456**（只读权限）
 
 ---
 
@@ -175,7 +176,7 @@ src/main/java/com/lixin/probe/
 
 src/main/resources/
 ├── application.yml      # 主配置
-└── sql/                 # 数据库建表脚本（24个）
+└── sql/                 # 数据库建表脚本（41张表）
 ```
 
 ### Agent (`apps/probe-agent`)
@@ -291,7 +292,11 @@ Agent `FileService` 递归扫描配置目录，支持全文件类型（`*`）、
 
 ### 安全
 
-- JWT Token + RBAC 权限控制
+- JWT Access/Refresh Token 双令牌认证
+- RBAC 角色权限控制（`sys_user` → `sys_user_role` → `sys_role` → `sys_role_permission` → `sys_permission`）
+  - **ROLE_ADMIN**：全部权限（探针管理、数据源控制、告警处理、系统管理等 16 项）
+  - **ROLE_OPERATOR**：只读权限（探针列表、告警查看、指标查看等 4 项）
+- 后端 `@RequirePermission` 注解鉴权，前端按钮/菜单按权限显示/隐藏
 - 数据库密码等敏感配置加密存储（`config/security/`）
 - Agent 认证密钥（`probe.key`）
 - 操作审计日志
