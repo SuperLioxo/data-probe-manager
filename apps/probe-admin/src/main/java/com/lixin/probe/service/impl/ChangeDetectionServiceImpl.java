@@ -312,21 +312,7 @@ public class ChangeDetectionServiceImpl implements ChangeDetectionService {
     }
 
     private String toJson(Map<String, Object> map) {
-        StringBuilder sb = new StringBuilder("{");
-        boolean first = true;
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            if (!first) sb.append(",");
-            sb.append("\"").append(entry.getKey()).append("\":");
-            Object val = entry.getValue();
-            if (val instanceof String) {
-                sb.append("\"").append(val).append("\"");
-            } else {
-                sb.append(val);
-            }
-            first = false;
-        }
-        sb.append("}");
-        return sb.toString();
+        return JSON.toJSONString(map);
     }
 
     private String formatBytes(long bytes) {

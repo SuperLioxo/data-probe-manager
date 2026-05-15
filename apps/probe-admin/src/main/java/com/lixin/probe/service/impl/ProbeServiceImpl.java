@@ -15,6 +15,7 @@ import com.lixin.probe.service.ProbeService;
 import com.lixin.probe.util.ExcelExportUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +48,9 @@ public class ProbeServiceImpl implements ProbeService {
     @Lazy
     @Autowired
     private ProbeControlService probeControlService;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Override
     public Page<Probe> getPage(int pageNum, int pageSize) {
@@ -191,7 +195,24 @@ public class ProbeServiceImpl implements ProbeService {
             }
         }
 
-        // 3. 删除数据库记录（乐观锁会自动检查version）
+        // 3. 删除关联数据
+        String[] cleanupTables = {
+            "change_log", "data_snapshot", "database_performance",
+            "table_info", "column_info", "database_metadata",
+            "sync_log", "file_metadata"
+        };
+        for (String table : cleanupTables) {
+            int deleted = jdbcTemplate.update(
+                "DELETE FROM " + table + " WHERE probe_key = ?", probeKey);
+            if (deleted > 0) {
+                log.info("清理关联数据: table={}, probeKey={}, deleted={}", table, probeKey, deleted);
+            }
+        }
+
+        // 4. 删除同步任务
+        jdbcTemplate.update("DELETE FROM sync_task WHERE source_probe_key = ? OR target_probe_key = ?", probeKey, probeKey);
+
+        // 5. 删除探针记录（乐观锁会自动检查version）
         int affected = probeMapper.deleteById(id);
 
         if (affected == 0) {

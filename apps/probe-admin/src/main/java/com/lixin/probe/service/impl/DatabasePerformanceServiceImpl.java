@@ -215,14 +215,10 @@ public class DatabasePerformanceServiceImpl implements DatabasePerformanceServic
                             .databaseName(tableDatabaseName) // Set databaseName
                             .tableName(tableName)
                             .engine((String) tableData.get("engine"))
-                            .rowCount(tableData.get("rowCount") != null ?
-                                    Long.valueOf(tableData.get("rowCount").toString()) : null)
-                            .dataSize(tableData.get("dataSize") != null ?
-                                    Long.valueOf(tableData.get("dataSize").toString()) : null)
-                            .indexSize(tableData.get("indexSize") != null ?
-                                    Long.valueOf(tableData.get("indexSize").toString()) : null)
-                            .totalSize(tableData.get("totalSize") != null ?
-                                    Long.valueOf(tableData.get("totalSize").toString()) : null)
+                            .rowCount(toLong(tableData.get("rowCount")))
+                            .dataSize(toLong(tableData.get("dataSize")))
+                            .indexSize(toLong(tableData.get("indexSize")))
+                            .totalSize(toLong(tableData.get("totalSize")))
                             .createTimeStr((String) tableData.get("createTimeStr"))
                             .updateTimeStr((String) tableData.get("updateTimeStr"))
                             .build();
@@ -291,14 +287,10 @@ public class DatabasePerformanceServiceImpl implements DatabasePerformanceServic
                     .probeId(probe.getId())
                     .probeKey(probeKey)
                     .databaseType((String) performanceData.get("databaseType"))
-                    .connectionUsage(performanceData.get("connectionUsage") != null ?
-                        Double.valueOf(performanceData.get("connectionUsage").toString()) : null)
-                    .qps(performanceData.get("qps") != null ?
-                        Double.valueOf(performanceData.get("qps").toString()) : null)
-                    .avgQueryTime(performanceData.get("avgQueryTime") != null ?
-                        Long.valueOf(performanceData.get("avgQueryTime").toString()) : null)
-                    .slowQueryCount(performanceData.get("slowQueryCount") != null ?
-                        Long.valueOf(performanceData.get("slowQueryCount").toString()) : null)
+                    .connectionUsage(toDouble(performanceData.get("connectionUsage")))
+                    .qps(toDouble(performanceData.get("qps")))
+                    .avgQueryTime(toLong(performanceData.get("avgQueryTime")))
+                    .slowQueryCount(toLong(performanceData.get("slowQueryCount")))
                     .timestamp(System.currentTimeMillis())
                     .createTime(LocalDateTime.now())
                     .build();
@@ -310,6 +302,24 @@ public class DatabasePerformanceServiceImpl implements DatabasePerformanceServic
         } catch (Exception e) {
             log.error("保存数据库性能数据失败: probeKey={}", probeKey, e);
             throw new RuntimeException("保存数据库性能数据失败: " + e.getMessage(), e);
+        }
+    }
+
+    private static Long toLong(Object val) {
+        if (val == null) return null;
+        try {
+            return Long.valueOf(val.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static Double toDouble(Object val) {
+        if (val == null) return null;
+        try {
+            return Double.valueOf(val.toString());
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 }
