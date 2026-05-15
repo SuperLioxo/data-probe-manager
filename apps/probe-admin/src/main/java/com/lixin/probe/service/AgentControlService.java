@@ -464,40 +464,43 @@ public class AgentControlService {
     private boolean tryMavenStart(String agentCode, Map<String, Object> result) {
         try {
             String projectDir = System.getProperty("user.dir", "/home/ovo/Workspace/data-probe-manager");
-            String agentDir = projectDir + "/apps/probe-agent";
+            // 向上查找项目根目录（可能从 apps/probe-admin 启动）
+            File dir = new File(projectDir);
+            while (dir != null && !new File(dir, "apps/probe-agent").exists()) {
+                dir = dir.getParentFile();
+            }
+            if (dir == null) {
+                dir = new File("/home/ovo/Workspace/data-probe-manager");
+            }
 
-            log.info("尝试使用Maven启动Agent: agentDir={}", agentDir);
+            String jarPath = dir.getAbsolutePath() + "/apps/probe-agent/target/probe-agent-1.0.0.jar";
+            String logPath = dir.getAbsolutePath() + "/logs/agent.log";
 
-            // 检查Agent目录是否存在
-            File dir = new File(agentDir);
-            if (!dir.exists()) {
-                log.warn("Agent目录不存在: {}", agentDir);
+            File jarFile = new File(jarPath);
+            if (!jarFile.exists()) {
+                log.warn("Agent jar不存在: {}", jarPath);
                 return false;
             }
 
-            // 构建Maven命令
+            log.info("尝试使用java -jar启动Agent: {}", jarPath);
+
             ProcessBuilder pb = new ProcessBuilder(
-                "mvn",
-                "spring-boot:run",
-                "-Dspring-boot.run.fork=false",
-                "-DskipTests=true"
+                "java", "-jar", jarPath
             );
             pb.directory(dir);
             pb.redirectErrorStream(true);
+            pb.redirectOutput(new File(logPath));
 
-            // 启动进程（异步，不等待）
             Process process = pb.start();
 
-            log.info("Maven启动命令已发送，PID: {}", process.pid());
-            log.info("查看日志: tail -f /tmp/probe-agent.log");
+            log.info("Agent启动命令已发送，PID: {}", process.pid());
 
             result.put("success", true);
-            result.put("message", "Agent启动命令已发送（Maven模式），请等待30-60秒启动完成");
-            result.put("method", "maven");
-            result.put("command", "mvn spring-boot:run");
-            result.put("agentDir", agentDir);
+            result.put("message", "Agent启动命令已发送，请等待10-20秒启动完成");
+            result.put("method", "java-jar");
+            result.put("command", "java -jar " + jarPath);
             result.put("pid", process.pid());
-            result.put("logFile", "/tmp/probe-agent.log");
+            result.put("logFile", logPath);
 
             return true;
 

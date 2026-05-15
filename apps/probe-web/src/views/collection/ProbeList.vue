@@ -8,11 +8,11 @@
       </div>
       <div class="page-actions">
         <!-- 主要操作按钮 -->
-        <el-button type="primary" @click="handleQuickCommand('quick')" class="touch-target">
+        <el-button v-if="hasPermission('probe:create')" type="primary" @click="handleQuickCommand('quick')" class="touch-target">
           <el-icon><Plus /></el-icon>
           新建探针
         </el-button>
-        <el-button type="success" @click="handleQuickCommand('import')" class="touch-target">
+        <el-button v-if="hasPermission('probe:create')" type="success" @click="handleQuickCommand('import')" class="touch-target">
           <el-icon><Upload /></el-icon>
           JSON导入
         </el-button>
@@ -169,7 +169,7 @@
               </el-dropdown>
 
               <!-- 删除 -->
-              <el-tooltip content="删除" placement="top" :show-after="500">
+              <el-tooltip v-if="hasPermission('probe:delete')" content="删除" placement="top" :show-after="500">
                 <el-button size="small" @click="handleDelete(scope.row)" link type="danger">
                   <el-icon><Delete /></el-icon>
                 </el-button>
@@ -1131,6 +1131,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh, DataAnalysis, Clock, FolderOpened, Folder, Document, DataBoard, Monitor, Odometer, Files, Connection, DataLine, VideoPlay, Download, Plus, ArrowDown, Check, Loading, List, Operation, InfoFilled, Search, Upload } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { probeApi, exportJson } from '@/api/probe'
+import { useStore } from '@/store'
+
+const { state: storeState, getters: storeGetters } = useStore()
+const hasPermission = (perm) => storeState.user.permissions.includes(perm) || storeGetters.isAdmin.value
 import * as fileProbeApi from '@/api/fileProbe'
 import { databaseProbeApi } from '@/api/databaseProbe'
 import { exportExcelFile } from '@/utils/export'
@@ -1613,8 +1617,8 @@ const handleReset = () => {
 const handleExport = async () => {
   exporting.value = true
   try {
-    const blob = await probeApi.export(queryForm)
-    exportExcelFile(blob, '探针列表.xlsx')
+    const res = await probeApi.export(queryForm)
+    exportExcelFile(res.data, '探针列表.xlsx')
     ElMessage.success('导出成功')
   } catch (error) {
     console.error('导出失败:', error)
@@ -1627,8 +1631,8 @@ const handleExport = async () => {
 const handleExportJson = async () => {
   exporting.value = true
   try {
-    const blob = await exportJson(queryForm)
-    exportExcelFile(blob, '探针配置.json')
+    const res = await exportJson(queryForm)
+    exportExcelFile(res.data, '探针配置.json')
     ElMessage.success('JSON配置导出成功')
   } catch (error) {
     console.error('JSON导出失败:', error)
@@ -2051,7 +2055,8 @@ const handleDownloadFile = async (row) => {
     const response = await fileProbeApi.downloadFile(row.id)
 
     // 创建blob对象
-    const blob = new Blob([response], { type: response.type || 'application/octet-stream' })
+    const blobData = response.data || response
+    const blob = new Blob([blobData], { type: blobData.type || 'application/octet-stream' })
 
     // 创建下载链接
     const url = window.URL.createObjectURL(blob)
@@ -2986,22 +2991,6 @@ const handleDelete = async (row) => {
       }
     )
 
-
-    // 先乐观更新：立即从列表中移除该项目（提供即时反馈）
-    const index = tableData.value.findIndex(item => item.id === row.id)
-
-    if (index > -1) {
-      // 立即从列表中移除
-      const deletedItem = tableData.value[index]
-      tableData.value.splice(index, 1)
-      pagination.total--
-
-      // 等待Vue更新DOM
-      await nextTick()
-    } else {
-      console.warn('[删除] ⚠ 未在列表中找到该探针，可能已被删除')
-    }
-
     // 根据探针类型调用不同的API
     let result
     if (row.type === 'FILE') {
@@ -3010,28 +2999,25 @@ const handleDelete = async (row) => {
       result = await probeApi.delete(row.id)
     }
 
-
     // 检查删除结果
     const isSuccess = result && result.code === 200
 
     if (isSuccess) {
       ElMessage.success('删除成功')
-    } else {
-      // 如果探针已经不存在或其他错误
-      if (result && result.message && result.message.includes('不存在')) {
-        ElMessage.warning('探针已不存在')
-      } else {
-        ElMessage.warning(`删除失败: ${result?.message || '未知错误'}，已从列表移除`)
+      // 从列表中移除
+      const index = tableData.value.findIndex(item => item.id === row.id)
+      if (index > -1) {
+        tableData.value.splice(index, 1)
+        pagination.total--
       }
+    } else {
+      ElMessage.warning(`删除失败: ${result?.message || '未知错误'}`)
     }
-
-    // 刷新列表以确保与后端数据一致
-    await fetchList()
 
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('[删除] ✗ 删除异常:', error)
-      console.error('删除失败:', error)
+      const msg = error?.response?.data?.message || error.message || '删除失败'
+      ElMessage.error(msg)
     }
   }
 }

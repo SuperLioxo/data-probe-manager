@@ -5,11 +5,6 @@ package com.lixin.probe.enums;
  */
 public enum NotificationType {
     /**
-     * 邮件通知
-     */
-    EMAIL("EMAIL", "邮件通知"),
-
-    /**
      * Webhook通知
      */
     WEBHOOK("WEBHOOK", "Webhook通知");

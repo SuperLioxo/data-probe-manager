@@ -4,21 +4,21 @@
  */
 
 import { reactive, computed } from 'vue'
-import { probeApi, statisticsApi } from '@/api'
+import { probeApi } from '@/api/probe'
 
 // 全局状态
 const state = reactive({
   // 用户信息
   user: {
     id: null,
-    username: 'admin',
-    realName: '李鑫',
-    email: 'admin@example.com',
+    username: '',
+    realName: '',
+    email: '',
     avatar: '',
     department: 'dev',
-    position: '高级工程师',
-    roles: ['admin'],
-    permissions: []
+    position: '',
+    roles: JSON.parse(localStorage.getItem('roles') || '[]'),
+    permissions: JSON.parse(localStorage.getItem('permissions') || '[]')
   },
 
   // 系统设置
@@ -99,7 +99,7 @@ const getters = {
   isLoggedIn: computed(() => !!state.user.id),
 
   // 用户角色
-  isAdmin: computed(() => state.user.roles.includes('admin')),
+  isAdmin: computed(() => state.user.roles.includes('ROLE_ADMIN')),
 
   // 主题模式
   isDarkTheme: computed(() => state.settings.appearance.theme === 'dark'),
@@ -171,15 +171,7 @@ const actions = {
     try {
       state.loading.statistics = true
 
-      const [overviewRes, probesRes] = await Promise.all([
-        statisticsApi.getOverview(),
-        probeApi.getList({ pageNum: 1, pageSize: 100 })
-      ])
-
-      if (overviewRes.code === 200) {
-        const { abnormalProbes } = overviewRes.data
-        state.statistics.errorProbes = abnormalProbes || 0
-      }
+      const probesRes = await probeApi.getList({ pageNum: 1, pageSize: 100 })
 
       if (probesRes.code === 200) {
         const probes = probesRes.data.records || []

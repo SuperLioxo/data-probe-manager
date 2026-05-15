@@ -16,6 +16,7 @@ import com.lixin.probe.listener.ChangeTriggeredSyncListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,9 @@ public class ChangeDetectionServiceImpl implements ChangeDetectionService {
 
     @Autowired
     private ChangeLogMapper changeLogMapper;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Autowired(required = false)
     private ProbeMapper probeMapper;
@@ -244,32 +248,51 @@ public class ChangeDetectionServiceImpl implements ChangeDetectionService {
     public Map<String, Object> getChangeStatistics(String probeKey) {
         Map<String, Object> stats = new LinkedHashMap<>();
 
-        LambdaQueryWrapper<ChangeLog> wrapper = new LambdaQueryWrapper<>();
+        String sql = "SELECT change_type, COUNT(*) as cnt FROM change_log";
+        Object[] args;
         if (probeKey != null && !probeKey.isEmpty()) {
-            wrapper.eq(ChangeLog::getProbeKey, probeKey);
+            sql += " WHERE probe_key = ? GROUP BY change_type";
+            args = new Object[]{probeKey};
+        } else {
+            sql += " GROUP BY change_type";
+            args = new Object[]{};
         }
 
-        // 总变化次数
-        stats.put("totalChanges", changeLogMapper.selectCount(wrapper));
-
-        // 按类型分组统计
-        List<ChangeLog> allLogs = changeLogMapper.selectList(wrapper);
         Map<String, Long> byType = new LinkedHashMap<>();
-        for (ChangeLog log : allLogs) {
-            byType.merge(log.getChangeType(), 1L, Long::sum);
+        long totalChanges = 0;
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, args);
+        for (Map<String, Object> row : rows) {
+            String type = (String) row.get("change_type");
+            Long cnt = ((Number) row.get("cnt")).longValue();
+            byType.put(type, cnt);
+            totalChanges += cnt;
         }
+
+        stats.put("totalChanges", totalChanges);
         stats.put("byType", byType);
 
         // 涉及的表数量
-        Set<String> tables = new HashSet<>();
-        for (ChangeLog log : allLogs) {
-            tables.add(log.getTableName());
+        String tableSql = "SELECT COUNT(DISTINCT table_name) FROM change_log";
+        if (probeKey != null && !probeKey.isEmpty()) {
+            tableSql += " WHERE probe_key = ?";
+            stats.put("affectedTables", jdbcTemplate.queryForObject(tableSql, Integer.class, probeKey));
+        } else {
+            stats.put("affectedTables", jdbcTemplate.queryForObject(tableSql, Integer.class));
         }
-        stats.put("affectedTables", tables.size());
 
-        // 最近一次变化
-        if (!allLogs.isEmpty()) {
-            stats.put("lastChangeTime", allLogs.get(0).getDetectedTime());
+        // 最近一次变化时间
+        String lastSql = "SELECT MAX(detected_time) FROM change_log";
+        if (probeKey != null && !probeKey.isEmpty()) {
+            lastSql += " WHERE probe_key = ?";
+            Object lastTime = jdbcTemplate.queryForObject(lastSql, Object.class, probeKey);
+            if (lastTime != null) {
+                stats.put("lastChangeTime", lastTime);
+            }
+        } else {
+            Object lastTime = jdbcTemplate.queryForObject(lastSql, Object.class);
+            if (lastTime != null) {
+                stats.put("lastChangeTime", lastTime);
+            }
         }
 
         return stats;

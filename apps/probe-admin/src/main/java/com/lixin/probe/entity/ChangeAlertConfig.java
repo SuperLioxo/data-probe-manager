@@ -27,7 +27,7 @@ public class ChangeAlertConfig implements Serializable {
     private Long thresholdRows;
     /** WARNING, CRITICAL */
     private String alertLevel;
-    /** LOG, WEBSOCKET, EMAIL */
+    /** LOG, WEBSOCKET */
     private String notifyChannels;
     private Boolean enabled;
     private LocalDateTime createTime;

@@ -57,9 +57,8 @@ public class DatabasePerformanceServiceImpl implements DatabasePerformanceServic
     public DatabasePerformance getLatestByProbeKey(String probeKey) {
         LambdaQueryWrapper<DatabasePerformance> queryWrapper = new LambdaQueryWrapper<DatabasePerformance>()
             .eq(DatabasePerformance::getProbeKey, probeKey)
-            .orderByDesc(DatabasePerformance::getCreateTime)
-            .last("LIMIT 1");
-        return databasePerformanceMapper.selectOne(queryWrapper);
+            .orderByDesc(DatabasePerformance::getCreateTime);
+        return databasePerformanceMapper.selectList(queryWrapper).stream().findFirst().orElse(null);
     }
 
     @Override

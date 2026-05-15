@@ -22,7 +22,7 @@ public class AlertChannel implements Serializable {
 
     private String name;
 
-    /** WEBHOOK, DINGTALK, WECOM, EMAIL */
+    /** WEBHOOK, DINGTALK, WECOM */
     private String channelType;
 
     /** JSON config — varies by channel type */

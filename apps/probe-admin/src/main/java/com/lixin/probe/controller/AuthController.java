@@ -12,8 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 认证控制器（重构版）
@@ -41,11 +41,11 @@ public class AuthController {
         User user = userService.validateLogin(request.getUsername(), request.getPassword());
 
         if (user == null) {
-            return Result.error("用户名或密码错误");
+            return Result.error(401, "用户名或密码错误");
         }
 
         if (user.getStatus() == 0) {
-            return Result.error("账户已被禁用");
+            return Result.error(403, "账户已被禁用");
         }
 
         // 生成JWT Claims
@@ -64,13 +64,19 @@ public class AuthController {
         data.put("refreshToken", refreshToken);
         data.put("tokenType", "Bearer");
         data.put("expiresIn", jwtUtil.getExpirationTime() / 1000);  // 转换为秒
-        data.put("userInfo", Map.of(
-            "id", user.getId(),
-            "username", user.getUsername(),
-            "realName", user.getRealName(),
-            "email", user.getEmail(),
-            "phone", user.getPhone()
-        ));
+
+        Set<String> permissions = userService.getUserPermissions(user.getUsername());
+        List<String> roles = userService.getUserRoles(user.getId());
+
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("id", user.getId());
+        userInfo.put("username", user.getUsername());
+        userInfo.put("realName", user.getRealName());
+        userInfo.put("email", user.getEmail());
+        userInfo.put("phone", user.getPhone());
+        userInfo.put("roles", roles);
+        userInfo.put("permissions", new ArrayList<>(permissions));
+        data.put("userInfo", userInfo);
 
         return Result.success("登录成功", data);
     }
@@ -184,17 +190,5 @@ public class AuthController {
         } catch (Exception e) {
             return Result.success("退出登录成功");
         }
-    }
-
-    /**
-     * 临时端点：生成密码哈希（仅用于开发环境）
-     */
-    @GetMapping("/generate-password")
-    public Result<Map<String, String>> generatePassword(@RequestParam(defaultValue = "admin123") String password) {
-        String hash = com.lixin.probe.util.SecurityUtil.encryptPassword(password);
-        Map<String, String> result = new HashMap<>();
-        result.put("password", password);
-        result.put("hash", hash);
-        return Result.success(result);
     }
 }

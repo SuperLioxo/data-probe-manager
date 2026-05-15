@@ -25,9 +25,11 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useStore } from '@/store'
 
 const route = useRoute()
 const isCollapsed = ref(false)
+const { state, getters } = useStore()
 
 const toggleCollapse = () => { isCollapsed.value = !isCollapsed.value }
 
@@ -36,7 +38,7 @@ const isActive = (path) => {
   return current === path || (path !== '/' && current.startsWith(path))
 }
 
-const menuGroups = computed(() => [
+const allMenuGroups = [
   {
     key: 'dashboard',
     label: '概览',
@@ -83,6 +85,7 @@ const menuGroups = computed(() => [
   {
     key: 'system',
     label: '系统管理',
+    adminOnly: true,
     items: [
       { path: '/system/agent-upgrade', icon: 'Upload', label: 'Agent升级' },
       { path: '/system/agent-logs', icon: 'Tickets', label: 'Agent日志' },
@@ -90,7 +93,11 @@ const menuGroups = computed(() => [
       { path: '/system/settings', icon: 'Setting', label: '系统设置' }
     ]
   }
-])
+]
+
+const menuGroups = computed(() =>
+  allMenuGroups.filter(group => !group.adminOnly || getters.isAdmin.value)
+)
 </script>
 
 <style scoped>

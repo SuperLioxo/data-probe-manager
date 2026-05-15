@@ -267,12 +267,11 @@ const handleDetect = async () => {
 }
 
 const loadData = () => {
-  loadStatistics()
-  loadLogs()
+  Promise.all([loadStatistics(), loadLogs()])
 }
 
-onMounted(() => {
-  loadProbes()
+onMounted(async () => {
+  await loadProbes()
   loadData()
 })
 </script>

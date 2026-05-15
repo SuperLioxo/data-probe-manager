@@ -11,9 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -28,6 +26,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Autowired(required = false)
     private PermissionService permissionService;
+
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @Override
     public User getByUsername(String username) {
@@ -89,6 +90,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         } catch (Exception e) {
             log.error("获取用户权限失败: {}", username, e);
             return new HashSet<>();
+        }
+    }
+
+    @Override
+    public List<String> getUserRoles(Long userId) {
+        try {
+            return jdbcTemplate.queryForList(
+                "SELECT r.role_code FROM sys_user_role ur JOIN sys_role r ON ur.role_id = r.id WHERE ur.user_id = ?",
+                String.class, userId);
+        } catch (Exception e) {
+            log.error("获取用户角色失败: userId={}", userId, e);
+            return List.of();
         }
     }
 

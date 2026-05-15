@@ -43,6 +43,11 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   response => {
+    // blob 响应直接返回（文件下载等）
+    if (response.config.responseType === 'blob') {
+      return response
+    }
+
     const res = response.data
 
     // 仅在开发环境打印响应日志

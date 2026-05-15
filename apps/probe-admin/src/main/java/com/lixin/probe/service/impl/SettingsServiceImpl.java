@@ -18,6 +18,41 @@ import java.util.Map;
 @Service
 public class SettingsServiceImpl extends ServiceImpl<SettingsMapper, Settings> implements SettingsService {
 
+    private static final Map<String, String> DEFAULT_SETTINGS = Map.ofEntries(
+            Map.entry("general.language", "zh-CN"),
+            Map.entry("general.timezone", "GMT+8"),
+            Map.entry("general.dateFormat", "YYYY-MM-DD"),
+            Map.entry("general.timeFormat", "24h"),
+            Map.entry("general.pageSize", "20"),
+            Map.entry("general.refreshInterval", "30"),
+            Map.entry("appearance.theme", "light"),
+            Map.entry("appearance.primaryColor", "#409eff"),
+            Map.entry("appearance.sidebarWidth", "medium"),
+            Map.entry("appearance.animation", "true"),
+            Map.entry("appearance.compact", "false"),
+            Map.entry("appearance.shadow", "none"),
+            Map.entry("notification.desktop", "true"),
+            Map.entry("notification.alert", "true"),
+            Map.entry("notification.system", "true"),
+            Map.entry("notification.sound", "true"),
+            Map.entry("notification.alertSound", "default"),
+            Map.entry("notification.volume", "70"),
+            Map.entry("security.sessionTimeout", "120"),
+            Map.entry("security.singleSignOn", "false"),
+            Map.entry("security.logOperations", "true"),
+            Map.entry("security.logRetention", "30"),
+            Map.entry("security.ipWhitelist", "false"),
+            Map.entry("security.whitelistIPs", "[]"),
+            Map.entry("system.defaultInterval", "60"),
+            Map.entry("system.dataRetention", "30"),
+            Map.entry("system.cpuThreshold", "80"),
+            Map.entry("system.memoryThreshold", "85"),
+            Map.entry("system.alertSilence", "0"),
+            Map.entry("system.enableCache", "true"),
+            Map.entry("system.cacheTime", "5"),
+            Map.entry("system.maxConnections", "100")
+    );
+
     @Override
     public Map<String, String> getAllSettings() {
         List<Settings> settingsList = this.list();
@@ -64,21 +99,16 @@ public class SettingsServiceImpl extends ServiceImpl<SettingsMapper, Settings> i
         }
     }
 
-    private static final Map<String, String> DEFAULT_SETTINGS = Map.of(
-            "language", "zh-CN",
-            "timezone", "Asia/Shanghai",
-            "dateFormat", "YYYY-MM-DD",
-            "timeFormat", "HH:mm:ss",
-            "pageSize", "20",
-            "refreshInterval", "30",
-            "sessionTimeout", "30",
-            "monitorInterval", "60",
-            "dataRetention", "90",
-            "alertThreshold", "80"
-    );
-
     @Override
     public void resetToDefaults() {
-        updateSettings(DEFAULT_SETTINGS);
+        this.remove(new LambdaQueryWrapper<>());
+        for (Map.Entry<String, String> entry : DEFAULT_SETTINGS.entrySet()) {
+            Settings setting = new Settings();
+            setting.setSettingKey(entry.getKey());
+            setting.setSettingValue(entry.getValue());
+            setting.setCreateTime(LocalDateTime.now());
+            setting.setUpdateTime(LocalDateTime.now());
+            this.save(setting);
+        }
     }
 }
