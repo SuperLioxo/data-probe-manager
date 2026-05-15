@@ -22,6 +22,18 @@ public class AgentControlService {
 
     private static final Logger log = LoggerFactory.getLogger(AgentControlService.class);
 
+    private String readProcessOutput(Process process) throws Exception {
+        StringBuilder output = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+        }
+        return output.toString();
+    }
+
     /**
      * 通过系统服务启动Agent
      * 尝试使用systemd或启动脚本
@@ -85,16 +97,7 @@ public class AgentControlService {
             pb.redirectErrorStream(true);
             Process process = pb.start();
 
-            // 读取输出
-            BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream())
-            );
-
-            StringBuilder output = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-            }
+            String output = readProcessOutput(process);
 
             int exitCode = process.waitFor();
             log.info("pkill exitCode: {}, output: {}", exitCode, output);
@@ -106,6 +109,7 @@ public class AgentControlService {
             result.put("method", "pkill");
             result.put("command", "pkill -f probe-agent");
             result.put("exitCode", exitCode);
+            result.put("output", output);
 
             if (exitCode == 0) {
                 log.info("✓ Agent进程已找到并停止");
@@ -171,21 +175,10 @@ public class AgentControlService {
             pb.redirectErrorStream(true);
             Process process = pb.start();
 
-            // 读取输出
-            BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream())
-            );
-
-            StringBuilder output = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-                log.info("systemctl输出: {}", line);
-            }
+            String output = readProcessOutput(process);
 
             int exitCode = process.waitFor();
             log.info("systemctl start exitCode: {}", exitCode);
-            log.info("完整输出:\n{}", output);
 
             if (exitCode == 0) {
                 result.put("success", true);
@@ -193,10 +186,10 @@ public class AgentControlService {
                 result.put("method", "systemd");
                 result.put("serviceName", serviceName);
                 result.put("command", String.format("systemctl start %s", serviceName));
-                result.put("output", output.toString());
+                result.put("output", output);
                 return true;
             } else {
-                log.warn("systemd启动失败，exitCode: {}, output: {}", exitCode, output);
+                log.warn("systemd启动失败，exitCode: {}", exitCode);
                 return false;
             }
 
@@ -252,21 +245,10 @@ public class AgentControlService {
             pb.redirectErrorStream(true);
             Process process = pb.start();
 
-            // 读取输出
-            BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream())
-            );
-
-            StringBuilder output = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-                log.info("脚本输出: {}", line);
-            }
+            String output = readProcessOutput(process);
 
             int exitCode = process.waitFor();
             log.info("启动脚本exitCode: {}", exitCode);
-            log.info("完整输出:\n{}", output);
 
             if (exitCode == 0) {
                 result.put("success", true);
@@ -274,11 +256,11 @@ public class AgentControlService {
                 result.put("method", "script");
                 result.put("scriptPath", scriptPath);
                 result.put("command", scriptPath);
-                result.put("output", output.toString());
+                result.put("output", output);
                 return true;
             } else {
                 log.warn("启动脚本执行失败，exitCode: {}", exitCode);
-                result.put("scriptOutput", output.toString());
+                result.put("scriptOutput", output);
                 return false;
             }
 
@@ -310,21 +292,10 @@ public class AgentControlService {
             pb.redirectErrorStream(true);
             Process process = pb.start();
 
-            // 读取输出
-            BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream())
-            );
-
-            StringBuilder output = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-                log.info("systemctl输出: {}", line);
-            }
+            String output = readProcessOutput(process);
 
             int exitCode = process.waitFor();
             log.info("systemctl restart exitCode: {}", exitCode);
-            log.info("完整输出:\n{}", output);
 
             if (exitCode == 0) {
                 result.put("success", true);
@@ -332,10 +303,10 @@ public class AgentControlService {
                 result.put("method", "systemd");
                 result.put("serviceName", serviceName);
                 result.put("command", String.format("systemctl restart %s", serviceName));
-                result.put("output", output.toString());
+                result.put("output", output);
                 return true;
             } else {
-                log.warn("systemd重启失败，exitCode: {}, output: {}", exitCode, output);
+                log.warn("systemd重启失败，exitCode: {}", exitCode);
                 return false;
             }
 
@@ -388,17 +359,7 @@ public class AgentControlService {
             pb.redirectErrorStream(true);
             Process process = pb.start();
 
-            // 读取输出
-            BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream())
-            );
-
-            StringBuilder output = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-                log.info("脚本输出: {}", line);
-            }
+            String output = readProcessOutput(process);
 
             int exitCode = process.waitFor();
             log.info("重启脚本exitCode: {}", exitCode);
@@ -410,11 +371,11 @@ public class AgentControlService {
                 result.put("method", "script");
                 result.put("scriptPath", scriptPath);
                 result.put("command", scriptPath);
-                result.put("output", output.toString());
+                result.put("output", output);
                 return true;
             } else {
                 log.warn("重启脚本执行失败，exitCode: {}", exitCode);
-                result.put("scriptOutput", output.toString());
+                result.put("scriptOutput", output);
                 return false;
             }
 

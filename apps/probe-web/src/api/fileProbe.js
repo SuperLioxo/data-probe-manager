@@ -1,5 +1,4 @@
 import request from './request'
-import axios from 'axios'
 
 /**
  * 文件探针管理API
@@ -82,14 +81,11 @@ export function getFiles(id, params) {
 
 // 下载文件
 export function downloadFile(fileId) {
-  const token = localStorage.getItem('token')
-  return axios({
-    baseURL: '/api',
+  return request({
     url: `/file-metadata/${fileId}/download`,
     method: 'get',
-    responseType: 'blob',
-    headers: token ? { Authorization: `Bearer ${token}` } : {}
-  }).then(response => response.data)
+    responseType: 'blob'
+  }).then(response => response.data || response)
 }
 
 // 删除文件

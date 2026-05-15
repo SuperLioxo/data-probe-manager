@@ -1134,7 +1134,7 @@ import { probeApi, exportJson } from '@/api/probe'
 import { useStore } from '@/store'
 
 const { state: storeState, getters: storeGetters } = useStore()
-const hasPermission = (perm) => storeState.user.permissions.includes(perm) || storeGetters.isAdmin.value
+const hasPermission = (perm) => (storeState.user.permissions && storeState.user.permissions.includes(perm)) || storeGetters.isAdmin.value
 import * as fileProbeApi from '@/api/fileProbe'
 import { databaseProbeApi } from '@/api/databaseProbe'
 import { exportExcelFile } from '@/utils/export'

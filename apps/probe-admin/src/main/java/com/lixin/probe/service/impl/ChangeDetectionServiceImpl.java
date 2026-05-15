@@ -305,7 +305,8 @@ public class ChangeDetectionServiceImpl implements ChangeDetectionService {
             wrapper.eq(ChangeLog::getProbeKey, probeKey);
         }
         wrapper.orderByDesc(ChangeLog::getDetectedTime);
-        wrapper.last("LIMIT " + limit);
+        int safeLimit = Math.max(1, Math.min(limit, 500));
+        wrapper.last("LIMIT " + safeLimit);
 
         return changeLogMapper.selectList(wrapper);
     }
