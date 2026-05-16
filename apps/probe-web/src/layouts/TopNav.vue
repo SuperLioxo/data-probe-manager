@@ -32,7 +32,7 @@
       <el-dropdown trigger="click" @command="handleCommand">
         <button class="topnav-user">
           <el-avatar :size="28" class="user-avatar"><el-icon><User /></el-icon></el-avatar>
-          <span class="user-name">管理员</span>
+          <span class="user-name">{{ displayName }}</span>
           <el-icon class="dropdown-caret"><CaretBottom /></el-icon>
         </button>
         <template #dropdown>
@@ -52,6 +52,13 @@ import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
+
+const displayName = computed(() => {
+  try {
+    const info = JSON.parse(localStorage.getItem('userInfo') || '{}')
+    return info.realName || info.username || '用户'
+  } catch { return '用户' }
+})
 
 const modules = [
   { key: 'dashboard', path: '/dashboard', label: '概览' },
@@ -87,6 +94,11 @@ const handleCommand = (cmd) => {
   if (cmd === 'logout') {
     localStorage.removeItem('isLogin')
     localStorage.removeItem('token')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('userInfo')
+    localStorage.removeItem('roles')
+    localStorage.removeItem('permissions')
+    localStorage.removeItem('username')
     ElMessage.success('已退出登录')
     router.push('/login')
   }
