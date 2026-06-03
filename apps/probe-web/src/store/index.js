@@ -1,24 +1,36 @@
 /**
  * 全局状态管理 Store
- * 使用 Vue 3 Composition API + reactive 实现轻量级状态管理
+ *
+ * 使用 Vue 3 Composition API + reactive 实现轻量级状态管理（未使用 Vuex/Pinia）。
+ * 所有组件通过 useStore() 获取同一个 reactive 对象，实现跨组件状态共享。
+ *
+ * 状态结构：
+ * - state.user       当前登录用户信息（id、角色、权限列表）
+ * - state.settings   系统设置（外观、通知、安全、系统参数），持久化到 localStorage
+ * - state.statistics 首页仪表盘统计数据（探针在线/离线数量）
+ * - state.notificationQueue 通知队列
+ *
+ * 持久化策略：
+ * 用户信息和设置通过 saveSettings() 写入 localStorage，页面刷新后通过 loadSettings() 恢复。
+ * 角色（roles）和权限（permissions）额外存储为独立的 localStorage 键，供路由守卫使用。
  */
 
 import { reactive, computed } from 'vue'
-import { probeApi, statisticsApi } from '@/api'
+import { probeApi } from '@/api/probe'
 
 // 全局状态
 const state = reactive({
   // 用户信息
   user: {
     id: null,
-    username: 'admin',
-    realName: '李鑫',
-    email: 'admin@example.com',
+    username: '',
+    realName: '',
+    email: '',
     avatar: '',
     department: 'dev',
-    position: '高级工程师',
-    roles: ['admin'],
-    permissions: []
+    position: '',
+    roles: JSON.parse(localStorage.getItem('roles') || '[]'),
+    permissions: JSON.parse(localStorage.getItem('permissions') || '[]')
   },
 
   // 系统设置
@@ -99,7 +111,7 @@ const getters = {
   isLoggedIn: computed(() => !!state.user.id),
 
   // 用户角色
-  isAdmin: computed(() => state.user.roles.includes('admin')),
+  isAdmin: computed(() => state.user.roles.includes('ROLE_ADMIN')),
 
   // 主题模式
   isDarkTheme: computed(() => state.settings.appearance.theme === 'dark'),
@@ -171,15 +183,7 @@ const actions = {
     try {
       state.loading.statistics = true
 
-      const [overviewRes, probesRes] = await Promise.all([
-        statisticsApi.getOverview(),
-        probeApi.getList({ pageNum: 1, pageSize: 100 })
-      ])
-
-      if (overviewRes.code === 200) {
-        const { abnormalProbes } = overviewRes.data
-        state.statistics.errorProbes = abnormalProbes || 0
-      }
+      const probesRes = await probeApi.getList({ pageNum: 1, pageSize: 100 })
 
       if (probesRes.code === 200) {
         const probes = probesRes.data.records || []

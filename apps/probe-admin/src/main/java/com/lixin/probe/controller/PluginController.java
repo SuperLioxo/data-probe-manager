@@ -19,4 +19,11 @@ public class PluginController {
         log.debug("[PluginHeartbeat] 收到 {} 个插件状态", pluginStatuses.size());
         return Result.success();
     }
+
+    @PostMapping("/report")
+    public Result<Void> report(@RequestBody JSONObject pluginReport) {
+        log.debug("[PluginReport] 收到插件上报: agent={}",
+                pluginReport.getString("agentCode"));
+        return Result.success();
+    }
 }

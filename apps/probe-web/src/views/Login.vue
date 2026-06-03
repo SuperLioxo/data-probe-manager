@@ -507,11 +507,14 @@ const handleLogin = async () => {
     if (response.code === 200) {
       ElMessage.success('登录成功')
 
+      const userInfo = response.data.userInfo
       localStorage.setItem('token', response.data.accessToken)
       localStorage.setItem('refreshToken', response.data.refreshToken)
-      localStorage.setItem('userInfo', JSON.stringify(response.data.userInfo))
+      localStorage.setItem('userInfo', JSON.stringify(userInfo))
       localStorage.setItem('isLogin', 'true')
-      localStorage.setItem('username', response.data.userInfo.username)
+      localStorage.setItem('username', userInfo.username)
+      localStorage.setItem('roles', JSON.stringify(userInfo.roles || []))
+      localStorage.setItem('permissions', JSON.stringify(userInfo.permissions || []))
 
       // 处理"记住我"功能
       if (rememberMe.value) {

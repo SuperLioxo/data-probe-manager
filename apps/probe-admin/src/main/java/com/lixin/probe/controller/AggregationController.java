@@ -31,10 +31,13 @@ public class AggregationController {
     }
 
     @GetMapping("/tables")
-    public Result<List<Map<String, Object>>> getTables(
-            @RequestParam(required = false) String sourceId) {
+    public Result<Map<String, Object>> getTables(
+            @RequestParam(required = false) String sourceId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "50") int pageSize) {
         return ControllerHelper.safeGet(() ->
-                aggregationService.getAggregatedTables(sourceId), "获取汇聚表列表失败");
+                aggregationService.getAggregatedTables(sourceId, keyword, pageNum, pageSize), "获取汇聚表列表失败");
     }
 
     @GetMapping("/tables/{sourceId}/{tableName}/data")

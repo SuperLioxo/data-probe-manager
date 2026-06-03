@@ -3,6 +3,8 @@
  * 提供设置的保存、加载、验证、导入导出功能
  */
 
+import { getUserSettings, updateUserSettings, resetUserSettings } from '@/api/user'
+
 const STORAGE_KEY = 'app_settings'
 const SETTINGS_VERSION = '1.0.0'
 
@@ -32,10 +34,7 @@ export const DEFAULT_SETTINGS = {
     system: true,
     sound: true,
     alertSound: 'default',
-    volume: 70,
-    email: false,
-    emailAddress: '',
-    emailFrequency: ['immediate']
+    volume: 70
   },
   security: {
     sessionTimeout: 120,
@@ -187,9 +186,6 @@ export function validateSettings(settings) {
   } else {
     if (settings.notification.volume < 0 || settings.notification.volume > 100) {
       errors.push('音量必须在0-100之间')
-    }
-    if (settings.notification.email && !settings.notification.emailAddress) {
-      errors.push('启用邮件通知时必须填写邮箱地址')
     }
   }
 
@@ -393,4 +389,116 @@ export function getStorageSize() {
  */
 export function clearSettings() {
   return safeStorage.remove(STORAGE_KEY)
+}
+
+// ========== API 集成函数 ==========
+
+/**
+ * 将嵌套设置对象转为扁平 Map（后端格式）
+ */
+export function flattenSettings(nested) {
+  const flat = {}
+  for (const [category, values] of Object.entries(nested)) {
+    for (const [key, value] of Object.entries(values)) {
+      flat[`${category}.${key}`] = Array.isArray(value)
+        ? JSON.stringify(value)
+        : String(value)
+    }
+  }
+  return flat
+}
+
+/**
+ * 将扁平 Map（后端格式）转为嵌套设置对象
+ */
+export function unflattenSettings(flatMap) {
+  const result = JSON.parse(JSON.stringify(DEFAULT_SETTINGS))
+  for (const [key, value] of Object.entries(flatMap)) {
+    const dotIndex = key.indexOf('.')
+    if (dotIndex === -1) continue
+    const category = key.substring(0, dotIndex)
+    const prop = key.substring(dotIndex + 1)
+    if (!result[category]) continue
+
+    // 类型转换
+    try {
+      const parsed = JSON.parse(value)
+      if (typeof parsed !== 'string') {
+        result[category][prop] = parsed
+      } else {
+        result[category][prop] = value
+      }
+    } catch {
+      result[category][prop] = value
+    }
+  }
+  return result
+}
+
+/**
+ * 从后端 API 加载设置
+ */
+export async function loadSettingsFromAPI() {
+  try {
+    const res = await getUserSettings()
+    if (res.code === 200 && res.data) {
+      const settings = unflattenSettings(res.data)
+      saveSettings(settings)
+      return settings
+    }
+  } catch (e) {
+    console.warn('从API加载设置失败，使用本地缓存:', e)
+  }
+  return loadSettings()
+}
+
+/**
+ * 保存设置到后端 API
+ */
+export async function saveSettingsToAPI(settings) {
+  const validation = validateSettings(settings)
+  if (!validation.valid) {
+    throw new Error(validation.errors.join('; '))
+  }
+
+  const flatMap = flattenSettings(settings)
+
+  try {
+    const res = await updateUserSettings(flatMap)
+    if (res.code === 200) {
+      saveSettings(settings)
+      return true
+    }
+    return false
+  } catch (e) {
+    console.error('保存设置到API失败:', e)
+    saveSettings(settings)
+    return false
+  }
+}
+
+/**
+ * 从后端重置设置
+ */
+export async function resetSettingsFromAPI(category = null) {
+  try {
+    if (!category) {
+      const res = await resetUserSettings()
+      if (res.code === 200) {
+        return await loadSettingsFromAPI()
+      }
+    } else {
+      const current = loadSettings()
+      current[category] = JSON.parse(JSON.stringify(DEFAULT_SETTINGS[category]))
+      const flatMap = flattenSettings(current)
+      const res = await updateUserSettings(flatMap)
+      if (res.code === 200) {
+        saveSettings(current)
+        return current
+      }
+    }
+  } catch (e) {
+    console.error('重置设置失败:', e)
+  }
+  return resetSettings(category)
 }

@@ -475,8 +475,8 @@ const handleReset = () => {
 const handleExport = async () => {
   exporting.value = true
   try {
-    const blob = await exportAuditLogs(queryForm)
-    exportExcelFile(blob, '审计日志.xlsx')
+    const res = await exportAuditLogs(queryForm)
+    exportExcelFile(res.data, '审计日志.xlsx')
     ElMessage.success('导出成功')
   } catch (error) {
     console.error('导出失败:', error)

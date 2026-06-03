@@ -114,11 +114,11 @@
             <el-icon><Bell /></el-icon>
             <span>通知设置</span>
           </el-menu-item>
-          <el-menu-item index="security" role="menuitem">
+          <el-menu-item v-if="isAdmin" index="security" role="menuitem">
             <el-icon><Lock /></el-icon>
             <span>安全设置</span>
           </el-menu-item>
-          <el-menu-item index="system" role="menuitem">
+          <el-menu-item v-if="isAdmin" index="system" role="menuitem">
             <el-icon><Monitor /></el-icon>
             <span>系统设置</span>
           </el-menu-item>
@@ -295,35 +295,11 @@
                 <span class="form-item-desc">{{ notificationSettings.volume }}%</span>
               </el-form-item>
             </div>
-
-            <div class="setting-group">
-              <h4>邮件通知</h4>
-              <el-form-item label="启用邮件通知">
-                <el-switch v-model="notificationSettings.email" />
-              </el-form-item>
-
-              <el-form-item label="邮箱地址">
-                <el-input
-                  v-model="notificationSettings.emailAddress"
-                  placeholder="请输入邮箱地址"
-                  style="width: 300px"
-                  :disabled="!notificationSettings.email"
-                />
-              </el-form-item>
-
-              <el-form-item label="发送频率">
-                <el-checkbox-group v-model="notificationSettings.emailFrequency" :disabled="!notificationSettings.email">
-                  <el-checkbox value="immediate">立即发送</el-checkbox>
-                  <el-checkbox value="hourly">每小时汇总</el-checkbox>
-                  <el-checkbox value="daily">每日汇总</el-checkbox>
-                </el-checkbox-group>
-              </el-form-item>
-            </div>
           </el-form>
         </div>
 
         <!-- 安全设置 -->
-        <div v-show="activeTab === 'security'" class="settings-panel">
+        <div v-if="isAdmin" v-show="activeTab === 'security'" class="settings-panel">
           <div class="panel-header">
             <h3>安全设置</h3>
             <p>配置系统安全相关参数</p>
@@ -394,7 +370,7 @@
         </div>
 
         <!-- 系统设置 -->
-        <div v-show="activeTab === 'system'" class="settings-panel">
+        <div v-if="isAdmin" v-show="activeTab === 'system'" class="settings-panel">
           <div class="panel-header">
             <h3>系统设置</h3>
             <p>配置探针监控和数据处理参数</p>
@@ -574,6 +550,10 @@ import {
   Plus, InfoFilled, Close, ArrowLeft
 } from '@element-plus/icons-vue'
 import * as SettingUtils from '@/utils/settings'
+import { useStore } from '@/store'
+
+const { getters: storeGetters } = useStore()
+const isAdmin = computed(() => storeGetters.isAdmin.value)
 
 // 状态管理
 const activeTab = ref('general')
@@ -622,7 +602,7 @@ const settingItems = computed(() => {
     { category: 'notification', label: '桌面通知', key: 'desktop', icon: 'Monitor' },
     { category: 'notification', label: '告警通知', key: 'alert', icon: 'Bell' },
     { category: 'notification', label: '声音通知', key: 'sound', icon: 'Mute' },
-    { category: 'notification', label: '邮件通知', key: 'email', icon: 'Message' },
+
     // 安全设置
     { category: 'security', label: '会话超时', key: 'sessionTimeout', icon: 'Timer' },
     { category: 'security', label: '操作日志', key: 'logOperations', icon: 'Document' },
@@ -647,22 +627,31 @@ const filteredItems = computed(() => {
 })
 
 // 组件挂载时加载设置
-onMounted(() => {
-  loadSettings()
+onMounted(async () => {
+  await loadSettings()
   setupWatchers()
 })
 
 // 加载设置
-const loadSettings = () => {
-  const settings = SettingUtils.loadSettings()
-  Object.assign(generalSettings, settings.general)
-  Object.assign(appearanceSettings, settings.appearance)
-  Object.assign(notificationSettings, settings.notification)
-  Object.assign(securitySettings, settings.security)
-  Object.assign(systemSettings, settings.system)
-
-  // 应用设置到UI - 但不应用布局相关的设置（避免影响侧边栏宽度）
-  applySettings(false)
+const loadSettings = async () => {
+  try {
+    const settings = await SettingUtils.loadSettingsFromAPI()
+    Object.assign(generalSettings, settings.general)
+    Object.assign(appearanceSettings, settings.appearance)
+    Object.assign(notificationSettings, settings.notification)
+    Object.assign(securitySettings, settings.security)
+    Object.assign(systemSettings, settings.system)
+    applySettings(false)
+  } catch (e) {
+    console.warn('从API加载设置失败，使用本地缓存')
+    const settings = SettingUtils.loadSettings()
+    Object.assign(generalSettings, settings.general)
+    Object.assign(appearanceSettings, settings.appearance)
+    Object.assign(notificationSettings, settings.notification)
+    Object.assign(securitySettings, settings.security)
+    Object.assign(systemSettings, settings.system)
+    applySettings(false)
+  }
 }
 
 // 应用设置到UI
@@ -861,21 +850,28 @@ const confirmImport = () => {
   importing.value = true
 
   SettingUtils.importSettings(importFile.value.raw)
-    .then((data) => {
-      // 应用导入的设置
-      Object.assign(generalSettings, data.settings.general || {})
-      Object.assign(appearanceSettings, data.settings.appearance || {})
-      Object.assign(notificationSettings, data.settings.notification || {})
-      Object.assign(securitySettings, data.settings.security || {})
-      Object.assign(systemSettings, data.settings.system || {})
+    .then(async (data) => {
+      const settings = {
+        general: { ...data.settings.general },
+        appearance: { ...data.settings.appearance },
+        notification: { ...data.settings.notification },
+        security: { ...data.settings.security },
+        system: { ...data.settings.system }
+      }
 
-      // 应用设置到UI - 导入设置时应用所有设置包括布局
+      await SettingUtils.saveSettingsToAPI(settings)
+
+      Object.assign(generalSettings, settings.general)
+      Object.assign(appearanceSettings, settings.appearance)
+      Object.assign(notificationSettings, settings.notification)
+      Object.assign(securitySettings, settings.security)
+      Object.assign(systemSettings, settings.system)
       applySettings(true)
 
       importDialogVisible.value = false
       importFile.value = null
 
-      ElMessage.success('设置已导入')
+      ElMessage.success('设置已导入并同步')
     })
     .catch((error) => {
       ElMessage.error('导入失败：' + error.message)
@@ -895,17 +891,20 @@ const handleReset = () => {
       cancelButtonText: '取消',
       type: 'warning'
     }
-  ).then(() => {
-    const defaults = SettingUtils.DEFAULT_SETTINGS[activeTab.value]
-    Object.assign(getCurrentSettings(), defaults)
-
-    // 应用设置到UI - 重置时应用所有设置包括布局
-    applySettings(true)
-
-    // 保存
-    debouncedSave()
-
-    ElMessage.success('设置已重置为默认值')
+  ).then(async () => {
+    saving.value = true
+    try {
+      const settings = await SettingUtils.resetSettingsFromAPI(activeTab.value)
+      if (settings) {
+        Object.assign(getCurrentSettings(), settings[activeTab.value])
+        applySettings(true)
+      }
+      ElMessage.success('设置已重置为默认值')
+    } catch (error) {
+      ElMessage.error('重置失败：' + error.message)
+    } finally {
+      saving.value = false
+    }
   }).catch(() => {
     // 用户取消
   })
@@ -921,21 +920,24 @@ const handleResetAll = () => {
       cancelButtonText: '取消',
       type: 'warning'
     }
-  ).then(() => {
-    const defaults = SettingUtils.DEFAULT_SETTINGS
-    Object.assign(generalSettings, defaults.general)
-    Object.assign(appearanceSettings, defaults.appearance)
-    Object.assign(notificationSettings, defaults.notification)
-    Object.assign(securitySettings, defaults.security)
-    Object.assign(systemSettings, defaults.system)
-
-    // 应用设置到UI - 重置时应用所有设置包括布局
-    applySettings(true)
-
-    // 保存
-    debouncedSave()
-
-    ElMessage.success('所有设置已重置为默认值')
+  ).then(async () => {
+    saving.value = true
+    try {
+      const settings = await SettingUtils.resetSettingsFromAPI()
+      if (settings) {
+        Object.assign(generalSettings, settings.general)
+        Object.assign(appearanceSettings, settings.appearance)
+        Object.assign(notificationSettings, settings.notification)
+        Object.assign(securitySettings, settings.security)
+        Object.assign(systemSettings, settings.system)
+        applySettings(true)
+      }
+      ElMessage.success('所有设置已重置为默认值')
+    } catch (error) {
+      ElMessage.error('重置失败：' + error.message)
+    } finally {
+      saving.value = false
+    }
   }).catch(() => {
     // 用户取消
   })
@@ -957,10 +959,9 @@ const getCurrentSettings = () => {
 let debouncedSave = () => {}
 
 // 保存设置
-const handleSave = () => {
+const handleSave = async () => {
   saving.value = true
 
-  // 组合设置对象
   const settings = {
     general: { ...generalSettings },
     appearance: { ...appearanceSettings },
@@ -969,24 +970,18 @@ const handleSave = () => {
     system: { ...systemSettings }
   }
 
-  // 验证设置
-  const validation = SettingUtils.validateSettings(settings)
-  if (!validation.valid) {
-    ElMessage.error('设置验证失败：' + validation.errors.join('；'))
-    saving.value = false
-    return
-  }
-
-  // 保存到localStorage
-  setTimeout(() => {
-    const success = SettingUtils.saveSettings(settings)
+  try {
+    const success = await SettingUtils.saveSettingsToAPI(settings)
     if (success) {
       ElMessage.success('设置已保存')
     } else {
-      ElMessage.error('设置保存失败，请检查浏览器存储权限')
+      ElMessage.warning('设置已保存到本地，但同步到服务器失败')
     }
+  } catch (error) {
+    ElMessage.error('设置保存失败：' + error.message)
+  } finally {
     saving.value = false
-  }, 300)
+  }
 }
 
 // 切换预览模式
@@ -1061,7 +1056,7 @@ debouncedSave = createDebounce(() => {
     return
   }
 
-  SettingUtils.saveSettings(settings)
+  SettingUtils.saveSettingsToAPI(settings).catch(e => console.error('自动保存失败:', e))
 }, 2000)
 </script>
 

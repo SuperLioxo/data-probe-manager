@@ -34,6 +34,7 @@ databases:
       - "public"
       - "test_schema"
     enabled: true
+    cdcEnabled: true
     description: "本地PostgreSQL开发数据库"
     connectionTimeout: 30
     queryTimeout: 60
@@ -50,6 +51,7 @@ databases:
     schemas:
       - "public"
     enabled: true
+    cdcEnabled: true
     description: "测试数据库1 - 用户订单系统"
     connectionTimeout: 30
     queryTimeout: 60
@@ -66,6 +68,7 @@ databases:
     schemas:
       - "public"
     enabled: true
+    cdcEnabled: true
     description: "测试数据库2 - 产品库存系统"
     connectionTimeout: 30
     queryTimeout: 60
@@ -82,6 +85,7 @@ databases:
     schemas:
       - "public"
     enabled: true
+    cdcEnabled: true
     description: "测试数据库3 - 员工部门系统"
     connectionTimeout: 30
     queryTimeout: 60
@@ -98,6 +102,7 @@ databases:
     schemas:
       - "test_db"
     enabled: true
+    cdcEnabled: true
     description: "本地MySQL测试数据库"
     connectionTimeout: 30
     queryTimeout: 60
@@ -112,6 +117,7 @@ databases:
     username: "root"
     password: "root"
     enabled: true
+    cdcEnabled: true
     description: "MySQL生产库"
     connectionTimeout: 30
     queryTimeout: 60

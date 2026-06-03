@@ -46,7 +46,7 @@ public class ProbeStrategyFactory {
         ProbeHeartbeatStrategy strategy = heartbeatStrategies.get(probeType);
 
         if (strategy == null) {
-            log.warn("未找到探针类型的心跳策略: {}, 使用默认策略", probeType);
+            log.debug("未找到探针类型的心跳策略: {}, 使用默认策略", probeType);
             // 返回默认策略（数据库探针策略作为默认）
             return heartbeatStrategies.values().stream()
                     .findFirst()

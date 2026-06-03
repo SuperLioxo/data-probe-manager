@@ -218,7 +218,7 @@ public class SyncTaskServiceImpl implements SyncTaskService {
         for (SyncTask task : allEnabled) {
             if (task.getNextSyncTime() != null
                     && !task.getNextSyncTime().isAfter(now.plusSeconds(30))
-                    && !runningTasks.containsKey(task.getId())
+                    && runningTasks.putIfAbsent(task.getId(), Boolean.TRUE) == null
                     && !"RUNNING".equals(task.getLastSyncStatus())) {
                 executeSyncAsync(task);
             }
@@ -299,7 +299,6 @@ public class SyncTaskServiceImpl implements SyncTaskService {
     }
 
     private void executeSyncAsync(SyncTask task) {
-        runningTasks.put(task.getId(), true);
         Thread.ofVirtual().name("sync-" + task.getId()).start(() -> {
             try {
                 semaphore.acquire();

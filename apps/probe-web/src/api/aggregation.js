@@ -8,8 +8,13 @@ export const aggregationApi = {
   getDatasources: () => {
     return request({ url: '/aggregation/datasources', method: 'get' })
   },
-  getTables: (sourceId) => {
-    return request({ url: '/aggregation/tables', method: 'get', params: sourceId ? { sourceId } : {} })
+  getTables: (sourceId, keyword, pageNum, pageSize) => {
+    const params = {}
+    if (sourceId) params.sourceId = sourceId
+    if (keyword) params.keyword = keyword
+    if (pageNum) params.pageNum = pageNum
+    if (pageSize) params.pageSize = pageSize
+    return request({ url: '/aggregation/tables', method: 'get', params })
   },
   getTableData: (sourceId, tableName, pageNum = 1, pageSize = 20) => {
     return request({ url: `/aggregation/tables/${sourceId}/${tableName}/data`, method: 'get', params: { pageNum, pageSize } })

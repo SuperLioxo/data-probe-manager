@@ -134,6 +134,21 @@
 </template>
 
 <script setup>
+/**
+ * 数据变化探测页面
+ *
+ * 核心功能：
+ * 1. 按探针筛选，查看数据源表级别的变更记录（行数变化、大小变化、CDC事件等）
+ * 2. 顶部统计卡片展示各变更类型的数量（通过 SQL GROUP BY 聚合，非前端计算）
+ * 3. 表格分页展示变化日志，支持按变更类型筛选
+ * 4. CDC 事件支持"查看变更对比"弹窗，展示行级 before/after 数据差异
+ * 5. 手动触发变更检测（后端从最新快照重新对比）
+ *
+ * 后端对应：
+ * - 变更日志：/api/change-detection/logs（MyBatis-Plus 分页，每页20条）
+ * - 统计聚合：/api/change-detection/statistics（SQL GROUP BY，不加载明细数据）
+ * - 手动检测：POST /api/change-detection/detect/{probeKey}
+ */
 import { ref, onMounted } from 'vue'
 import { Refresh, View } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -141,34 +156,42 @@ import { getChangeLogs, getChangeStatistics, getRecentChanges, triggerDetection 
 import { probeApi } from '@/api/probe'
 import dayjs from 'dayjs'
 
+// ========== 探针筛选 ==========
 const probes = ref([])
 const selectedProbe = ref('')
-const filterType = ref('')
+const filterType = ref('')        // 变更类型筛选
+
+// ========== 列表状态 ==========
 const loading = ref(false)
-const detecting = ref(false)
+const detecting = ref(false)      // 手动检测中
 const logs = ref([])
 const statistics = ref({})
 const pageNum = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 
+// ========== CDC 变更对比弹窗状态 ==========
 const diffVisible = ref(false)
-const diffData = ref(null)
-const diffBefore = ref(null)
-const diffAfter = ref(null)
-const diffPosition = ref('')
+const diffData = ref(null)        // 当前对比的变更记录
+const diffBefore = ref(null)      // 变更前数据（CDC before 字段）
+const diffAfter = ref(null)       // 变更后数据（CDC after 字段）
+const diffPosition = ref('')      // Binlog 位点信息
 
+// 变更类型 → 中文标签映射（后端存储英文枚举，前端展示中文）
 const getChangeTypeLabel = (type) => {
   const map = { ROW_INSERT: '行插入', ROW_UPDATE: '行更新', ROW_DELETE: '行删除', DATA_UPDATE: '数据更新', SIZE_CHANGE: '大小变化', INDEX_SIZE_CHANGE: '索引变化', SCHEMA_CHANGE: '结构变更', COUNT_CHANGE: '数量变化', CHECKSUM_CHANGE: '校验变化', CDC_EVENT: 'CDC事件' }
   return map[type] || type
 }
 
+// 判断是否为 CDC（Change Data Capture）实时变更事件
+// CDC 事件的 changeDetail 包含 operation、beforeData、afterData 字段
 const isCDCEvent = (row) => {
   if (!row.changeDetail) return false
   const d = parseDetail(row.changeDetail)
   return d && (d.operation || d.beforeData || d.afterData)
 }
 
+// 从 CDC 事件中提取操作类型标签（INSERT/UPDATE/DELETE → 插入/更新/删除）
 const getOperationLabel = (row) => {
   const d = parseDetail(row.changeDetail)
   const op = d?.operation
@@ -176,6 +199,7 @@ const getOperationLabel = (row) => {
   return map[op] || op || row.changeType
 }
 
+// CDC 操作类型 → Element Plus Tag 颜色（插入=绿色，更新=黄色，删除=红色）
 const getOperationTagType = (row) => {
   const d = parseDetail(row.changeDetail)
   const op = d?.operation
@@ -183,6 +207,7 @@ const getOperationTagType = (row) => {
   return map[op] || 'info'
 }
 
+// 打开 CDC 变更对比弹窗，展示 before/after 行数据差异
 const showDiff = (row) => {
   const d = parseDetail(row.changeDetail)
   diffData.value = row
@@ -192,19 +217,23 @@ const showDiff = (row) => {
   diffVisible.value = true
 }
 
+// 非CDC变更类型 → Element Plus Tag 颜色
 const getTagType = (type) => {
   const map = { ROW_INSERT: 'success', ROW_DELETE: 'danger', DATA_UPDATE: 'warning', SIZE_CHANGE: 'info', INDEX_SIZE_CHANGE: '', SCHEMA_CHANGE: 'warning' }
   return map[type] || 'info'
 }
 
+// 时间格式化：后端返回 ISO 时间戳，前端转为可读格式
 const formatTime = (time) => {
   return time ? dayjs(time).format('YYYY-MM-DD HH:mm:ss') : '-'
 }
 
+// 解析变更详情 JSON（后端存储为 JSON 字符串，前端需要解析为对象）
 const parseDetail = (detail) => {
   try { return typeof detail === 'string' ? JSON.parse(detail) : detail } catch { return {} }
 }
 
+// 加载探针列表（下拉框选项）
 const loadProbes = async () => {
   try {
     const res = await probeApi.getList({ pageNum: 1, pageSize: 100 })
@@ -214,6 +243,7 @@ const loadProbes = async () => {
   } catch (e) { console.error('加载探针列表失败', e) }
 }
 
+// 加载变更统计（后端使用 SQL GROUP BY 聚合，不加载明细数据，性能高）
 const loadStatistics = async () => {
   try {
     const res = await getChangeStatistics(selectedProbe.value)
@@ -223,6 +253,7 @@ const loadStatistics = async () => {
   } catch (e) { console.error('加载统计失败', e) }
 }
 
+// 加载变化日志（MyBatis-Plus 分页查询，每次只返回当前页数据）
 const loadLogs = async () => {
   loading.value = true
   try {
@@ -240,6 +271,7 @@ const loadLogs = async () => {
   finally { loading.value = false }
 }
 
+// 手动触发变更检测（后端从最新快照重新对比，检测是否有新的变化）
 const handleDetect = async () => {
   if (!selectedProbe.value) {
     ElMessage.warning('请先选择探针')
@@ -266,13 +298,14 @@ const handleDetect = async () => {
   }
 }
 
+// 并行加载统计和日志（切换探针或刷新时调用）
 const loadData = () => {
-  loadStatistics()
-  loadLogs()
+  Promise.all([loadStatistics(), loadLogs()])
 }
 
-onMounted(() => {
-  loadProbes()
+// 页面初始化：先加载探针列表（用于下拉框），再加载统计数据和日志
+onMounted(async () => {
+  await loadProbes()
   loadData()
 })
 </script>

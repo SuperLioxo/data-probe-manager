@@ -123,7 +123,6 @@
           <el-select v-model="form.notifyChannels" style="width: 100%">
             <el-option label="日志" value="LOG" />
             <el-option label="WebSocket推送" value="WEBSOCKET" />
-            <el-option label="邮件" value="EMAIL" />
           </el-select>
         </el-form-item>
       </el-form>

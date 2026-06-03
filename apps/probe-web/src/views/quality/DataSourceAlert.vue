@@ -129,7 +129,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="通知渠道">
-          <el-input v-model="formData.notifyChannels" placeholder="如 LOG,WEBSOCKET,EMAIL" />
+          <el-input v-model="formData.notifyChannels" placeholder="如 LOG,WEBSOCKET" />
         </el-form-item>
       </el-form>
       <template #footer>

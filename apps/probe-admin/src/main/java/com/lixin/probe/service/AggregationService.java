@@ -51,9 +51,9 @@ public interface AggregationService {
     List<Map<String, Object>> getAggregatedDataSources();
 
     /**
-     * 获取已汇聚的表列表
+     * 获取已汇聚的表列表（分页）
      */
-    List<Map<String, Object>> getAggregatedTables(String sourceId);
+    Map<String, Object> getAggregatedTables(String sourceId, String keyword, int pageNum, int pageSize);
 
     /**
      * 查询不合格记录

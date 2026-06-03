@@ -136,14 +136,14 @@ public class DatabaseMetadataServiceImpl implements DatabaseMetadataService {
     @Override
     @Transactional
     public void saveTable(TableInfo tableInfo) {
-        // 检查是否已存在（按 probeKey + tableName + databaseName 查重）
-        // 同时兼容 databaseName 为空的历史记录，避免重复插入
+        // 按 probeKey + tableName + databaseName 精确查重
         LambdaQueryWrapper<TableInfo> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(TableInfo::getProbeKey, tableInfo.getProbeKey())
                 .eq(TableInfo::getTableName, tableInfo.getTableName());
         if (StringUtils.hasText(tableInfo.getDatabaseName())) {
-            wrapper.and(w -> w.eq(TableInfo::getDatabaseName, tableInfo.getDatabaseName())
-                    .or().isNull(TableInfo::getDatabaseName)
+            wrapper.eq(TableInfo::getDatabaseName, tableInfo.getDatabaseName());
+        } else {
+            wrapper.and(w -> w.isNull(TableInfo::getDatabaseName)
                     .or().eq(TableInfo::getDatabaseName, ""));
         }
 

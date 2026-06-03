@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { ElMessage } from 'element-plus'
 
 const routes = [
   {
@@ -114,19 +115,19 @@ const routes = [
     path: '/system/agent-upgrade',
     name: 'AgentUpgrade',
     component: () => import('@/views/system/AgentUpgrade.vue'),
-    meta: { title: 'Agent升级', module: 'system' }
+    meta: { title: 'Agent升级', module: 'system', requireAdmin: true }
   },
   {
     path: '/system/agent-logs',
     name: 'AgentLog',
     component: () => import('@/views/system/AgentLog.vue'),
-    meta: { title: 'Agent日志', module: 'system' }
+    meta: { title: 'Agent日志', module: 'system', requireAdmin: true }
   },
   {
     path: '/system/audit-logs',
     name: 'AuditLog',
     component: () => import('@/views/system/AuditLog.vue'),
-    meta: { title: '审计日志', module: 'system' }
+    meta: { title: '审计日志', module: 'system', requireAdmin: true }
   },
   {
     path: '/system/settings',
@@ -194,6 +195,14 @@ router.beforeEach((to, from, next) => {
     next('/login')
   } else if (to.path === '/login' && isLoggedIn) {
     next('/dashboard')
+  } else if (to.meta.requireAdmin) {
+    const roles = JSON.parse(localStorage.getItem('roles') || '[]')
+    if (roles.includes('ROLE_ADMIN')) {
+      next()
+    } else {
+      ElMessage.warning('无权限访问该页面')
+      next('/dashboard')
+    }
   } else {
     next()
   }

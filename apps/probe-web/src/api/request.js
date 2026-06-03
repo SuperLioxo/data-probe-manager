@@ -1,18 +1,30 @@
+/**
+ * Axios 请求封装
+ *
+ * 核心功能：
+ * 1. 统一 baseURL 前缀 /api，所有 API 模块直接写相对路径即可
+ * 2. 请求拦截器：自动从 localStorage 读取 JWT token 并附加到 Authorization 头
+ * 3. 响应拦截器：统一处理后端 Result<T> 格式（code=200 为成功，其他为失败）
+ * 4. Token 自动刷新：当收到 401 时，用 refreshToken 静默刷新，刷新期间的其他请求排队等待
+ * 5. 登录过期处理：刷新失败后清除本地数据，弹出提示并跳转登录页
+ */
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
 
+// 创建 axios 实例，baseURL 对应 Vite 代理配置中的 /api 前缀
 const request = axios.create({
   baseURL: '/api',
-  timeout: 10000
+  timeout: 10000 // 请求超时 10 秒
 })
 
-// 标记是否正在刷新 token，防止并发刷新
+// Token 刷新并发控制：
+// 当多个请求同时收到 401 时，只让第一个请求去刷新 token，
+// 其余请求加入 failedQueue 排队，刷新成功后统一重试
 let isRefreshing = false
-// 失败请求队列
 let failedQueue = []
 
-// 标记是否正在处理登录过期，防止重复弹窗
+// 登录过期处理标记，防止多个 401 响应触发重复弹窗和跳转
 let isHandlingLoginExpired = false
 
 // 请求拦截器
@@ -43,6 +55,11 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   response => {
+    // blob 响应直接返回（文件下载等）
+    if (response.config.responseType === 'blob') {
+      return response
+    }
+
     const res = response.data
 
     // 仅在开发环境打印响应日志

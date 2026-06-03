@@ -32,7 +32,7 @@
       <el-dropdown trigger="click" @command="handleCommand">
         <button class="topnav-user">
           <el-avatar :size="28" class="user-avatar"><el-icon><User /></el-icon></el-avatar>
-          <span class="user-name">管理员</span>
+          <span class="user-name">{{ displayName }}</span>
           <el-icon class="dropdown-caret"><CaretBottom /></el-icon>
         </button>
         <template #dropdown>
@@ -49,18 +49,30 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { useStore } from '@/store'
 
 const route = useRoute()
 const router = useRouter()
+const { getters } = useStore()
 
-const modules = [
-  { key: 'dashboard', path: '/dashboard', label: '概览' },
-  { key: 'collection', path: '/collection/probes', label: '采集' },
-  { key: 'sync', path: '/sync/tasks', label: '同步' },
-  { key: 'quality', path: '/quality/rules', label: '质量' },
-  { key: 'monitoring', path: '/monitoring/realtime', label: '监控' },
-  { key: 'system', path: '/system/agent-upgrade', label: '系统' }
-]
+const displayName = computed(() => {
+  try {
+    const info = JSON.parse(localStorage.getItem('userInfo') || '{}')
+    return info.realName || info.username || '用户'
+  } catch { return '用户' }
+})
+
+const modules = computed(() => {
+  const base = [
+    { key: 'dashboard', path: '/dashboard', label: '概览' },
+    { key: 'collection', path: '/collection/probes', label: '采集' },
+    { key: 'sync', path: '/sync/tasks', label: '同步' },
+    { key: 'quality', path: '/quality/rules', label: '质量' },
+    { key: 'monitoring', path: '/monitoring/realtime', label: '监控' },
+    { key: 'system', path: getters.isAdmin.value ? '/system/agent-upgrade' : '/system/settings', label: '系统' }
+  ]
+  return base
+})
 
 const activeModule = computed(() => {
   const path = route.path
@@ -87,6 +99,11 @@ const handleCommand = (cmd) => {
   if (cmd === 'logout') {
     localStorage.removeItem('isLogin')
     localStorage.removeItem('token')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('userInfo')
+    localStorage.removeItem('roles')
+    localStorage.removeItem('permissions')
+    localStorage.removeItem('username')
     ElMessage.success('已退出登录')
     router.push('/login')
   }

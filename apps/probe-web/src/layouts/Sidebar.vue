@@ -1,13 +1,13 @@
 <template>
   <aside class="sidebar" :class="{ collapsed: isCollapsed }">
     <button class="sidebar-toggle" @click="toggleCollapse" :aria-label="isCollapsed ? '展开' : '折叠'">
-      <el-icon><Fold v-if="!isCollapsed" /><Expand v-else /></el-icon>
+      <el-icon><component :is="isCollapsed ? 'Expand' : 'Fold'" /></el-icon>
     </button>
 
     <nav class="sidebar-nav">
       <div v-for="group in menuGroups" :key="group.key" class="nav-group">
-        <div v-if="!isCollapsed" class="nav-group-title">{{ group.label }}</div>
-        <div v-else class="nav-group-divider"></div>
+        <div v-show="!isCollapsed" class="nav-group-title">{{ group.label }}</div>
+        <div v-show="isCollapsed" class="nav-group-divider"></div>
         <router-link
           v-for="item in group.items" :key="item.path"
           :to="item.path"
@@ -15,7 +15,7 @@
           :class="{ active: isActive(item.path) }"
         >
           <el-icon :size="16"><component :is="item.icon" /></el-icon>
-          <span v-if="!isCollapsed" class="nav-label">{{ item.label }}</span>
+          <span v-show="!isCollapsed" class="nav-label">{{ item.label }}</span>
         </router-link>
       </div>
     </nav>
@@ -25,9 +25,11 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useStore } from '@/store'
 
 const route = useRoute()
 const isCollapsed = ref(false)
+const { state, getters } = useStore()
 
 const toggleCollapse = () => { isCollapsed.value = !isCollapsed.value }
 
@@ -36,7 +38,7 @@ const isActive = (path) => {
   return current === path || (path !== '/' && current.startsWith(path))
 }
 
-const menuGroups = computed(() => [
+const allMenuGroups = [
   {
     key: 'dashboard',
     label: '概览',
@@ -84,13 +86,23 @@ const menuGroups = computed(() => [
     key: 'system',
     label: '系统管理',
     items: [
-      { path: '/system/agent-upgrade', icon: 'Upload', label: 'Agent升级' },
-      { path: '/system/agent-logs', icon: 'Tickets', label: 'Agent日志' },
-      { path: '/system/audit-logs', icon: 'Document', label: '审计日志' },
+      { path: '/system/agent-upgrade', icon: 'Upload', label: 'Agent升级', adminOnly: true },
+      { path: '/system/agent-logs', icon: 'Tickets', label: 'Agent日志', adminOnly: true },
+      { path: '/system/audit-logs', icon: 'Document', label: '审计日志', adminOnly: true },
       { path: '/system/settings', icon: 'Setting', label: '系统设置' }
     ]
   }
-])
+]
+
+const menuGroups = computed(() => {
+  const isAdmin = getters.isAdmin.value
+  return allMenuGroups
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item => !item.adminOnly || isAdmin)
+    }))
+    .filter(group => group.items.length > 0)
+})
 </script>
 
 <style scoped>
@@ -103,9 +115,10 @@ const menuGroups = computed(() => [
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: width 0.25s ease, min-width 0.25s ease;
+  transition: width 0.2s ease-out, min-width 0.2s ease-out;
   position: relative;
   flex-shrink: 0;
+  will-change: width;
 }
 
 .sidebar.collapsed {

@@ -25,4 +25,9 @@ public interface CDCPlugin {
             String fromPosition, int maxEvents);
 
     CompletableFuture<Boolean> testConnection(Map<String, Object> config);
+
+    /**
+     * 关闭插件持有的连接和资源
+     */
+    default void shutdown() {}
 }
