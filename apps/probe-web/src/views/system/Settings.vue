@@ -114,11 +114,11 @@
             <el-icon><Bell /></el-icon>
             <span>通知设置</span>
           </el-menu-item>
-          <el-menu-item index="security" role="menuitem">
+          <el-menu-item v-if="isAdmin" index="security" role="menuitem">
             <el-icon><Lock /></el-icon>
             <span>安全设置</span>
           </el-menu-item>
-          <el-menu-item index="system" role="menuitem">
+          <el-menu-item v-if="isAdmin" index="system" role="menuitem">
             <el-icon><Monitor /></el-icon>
             <span>系统设置</span>
           </el-menu-item>
@@ -299,7 +299,7 @@
         </div>
 
         <!-- 安全设置 -->
-        <div v-show="activeTab === 'security'" class="settings-panel">
+        <div v-if="isAdmin" v-show="activeTab === 'security'" class="settings-panel">
           <div class="panel-header">
             <h3>安全设置</h3>
             <p>配置系统安全相关参数</p>
@@ -370,7 +370,7 @@
         </div>
 
         <!-- 系统设置 -->
-        <div v-show="activeTab === 'system'" class="settings-panel">
+        <div v-if="isAdmin" v-show="activeTab === 'system'" class="settings-panel">
           <div class="panel-header">
             <h3>系统设置</h3>
             <p>配置探针监控和数据处理参数</p>
@@ -550,6 +550,10 @@ import {
   Plus, InfoFilled, Close, ArrowLeft
 } from '@element-plus/icons-vue'
 import * as SettingUtils from '@/utils/settings'
+import { useStore } from '@/store'
+
+const { getters: storeGetters } = useStore()
+const isAdmin = computed(() => storeGetters.isAdmin.value)
 
 // 状态管理
 const activeTab = ref('general')

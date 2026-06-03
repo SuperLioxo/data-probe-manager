@@ -40,6 +40,7 @@ import Sidebar from './Sidebar.vue'
   overflow-x: hidden;
   padding: 20px;
   background: #f5f7fa;
+  contain: layout style;
 }
 
 .fade-slide-enter-active,

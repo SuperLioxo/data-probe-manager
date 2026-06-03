@@ -1,5 +1,6 @@
 package com.lixin.probe.agent.module;
 
+import com.lixin.probe.agent.cdc.CDCCaptureScheduler;
 import com.lixin.probe.agent.config.AgentProperties;
 import com.lixin.probe.agent.constant.Command;
 import com.lixin.probe.agent.pojo.response.ProbeResponse;
@@ -33,6 +34,9 @@ public class DatabaseModule implements ProbeModule {
 
     @Autowired
     private WebSocketClientHandler wsClient;
+
+    @Autowired
+    private CDCCaptureScheduler cdcScheduler;
 
     private volatile boolean running = false;
 
@@ -74,6 +78,13 @@ public class DatabaseModule implements ProbeModule {
         running = true;
         log.info("数据库元数据探针模块启动成功");
 
+        // 启动CDC捕获调度
+        try {
+            cdcScheduler.start();
+        } catch (Exception e) {
+            log.warn("CDC调度器启动失败（不影响主模块运行）: {}", e.getMessage());
+        }
+
         // 延迟5秒后自动采集一次元数据（用于测试）
         new Thread(() -> {
             try {
@@ -91,6 +102,7 @@ public class DatabaseModule implements ProbeModule {
     @Override
     public void stop() throws Exception {
         log.info("停止数据库元数据探针模块...");
+        cdcScheduler.stop();
         running = false;
     }
 

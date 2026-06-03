@@ -100,4 +100,11 @@ public class DatabaseConnectionConfig {
      */
     @JsonProperty("queryTimeout")
     private Integer queryTimeout;
+
+    /**
+     * 是否启用CDC（变更数据捕获）
+     * 启用后Agent会自动对该实例进行CDC监听，捕获INSERT/UPDATE/DELETE事件
+     */
+    @JsonProperty("cdcEnabled")
+    private Boolean cdcEnabled = false;
 }

@@ -49,9 +49,11 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { useStore } from '@/store'
 
 const route = useRoute()
 const router = useRouter()
+const { getters } = useStore()
 
 const displayName = computed(() => {
   try {
@@ -60,14 +62,17 @@ const displayName = computed(() => {
   } catch { return '用户' }
 })
 
-const modules = [
-  { key: 'dashboard', path: '/dashboard', label: '概览' },
-  { key: 'collection', path: '/collection/probes', label: '采集' },
-  { key: 'sync', path: '/sync/tasks', label: '同步' },
-  { key: 'quality', path: '/quality/rules', label: '质量' },
-  { key: 'monitoring', path: '/monitoring/realtime', label: '监控' },
-  { key: 'system', path: '/system/agent-upgrade', label: '系统' }
-]
+const modules = computed(() => {
+  const base = [
+    { key: 'dashboard', path: '/dashboard', label: '概览' },
+    { key: 'collection', path: '/collection/probes', label: '采集' },
+    { key: 'sync', path: '/sync/tasks', label: '同步' },
+    { key: 'quality', path: '/quality/rules', label: '质量' },
+    { key: 'monitoring', path: '/monitoring/realtime', label: '监控' },
+    { key: 'system', path: getters.isAdmin.value ? '/system/agent-upgrade' : '/system/settings', label: '系统' }
+  ]
+  return base
+})
 
 const activeModule = computed(() => {
   const path = route.path

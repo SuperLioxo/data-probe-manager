@@ -13,11 +13,15 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class BinlogCDCPlugin implements CDCPlugin {
 
     private static final Logger log = LoggerFactory.getLogger(BinlogCDCPlugin.class);
+
+    /** 自增serverId生成器，每个BinaryLogClient需要唯一ID以避免同一MySQL上的冲突 */
+    private static final AtomicInteger SERVER_ID_SEQ = new AtomicInteger(10000);
 
     private final Map<String, BinaryLogClient> activeClients = new ConcurrentHashMap<>();
     private final Map<String, BlockingQueue<ProbeResponse.CDCEvent>> eventQueues = new ConcurrentHashMap<>();
@@ -158,6 +162,8 @@ public class BinlogCDCPlugin implements CDCPlugin {
         String password = (String) config.get("password");
 
         BinaryLogClient client = new BinaryLogClient(host, port, username, password);
+        // 每个client使用唯一的serverId，避免同一MySQL上多实例连接时冲突
+        client.setServerId(SERVER_ID_SEQ.incrementAndGet());
 
         EventDeserializer eventDeserializer = new EventDeserializer();
         eventDeserializer.setCompatibilityMode(
